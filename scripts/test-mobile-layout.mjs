@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const output = join(root, "test-results", "mobile-layout", new Date().toISOString().replace(/[:.]/g, "-"));
 const userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 const viewports = [{ width: 320, height: 694 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 844, height: 390 }];
-const tabs = ["首页", "搜索", "分类", "我的"];
+const tabs = ["홈", "검색", "카테고리", "마이페이지"];
 const report = {
   environment: { browser: "Chromium with iPhone UA", transport: "real App; Tauri IPC mocked; no upstream traffic", limitation: "Does not replace native iOS/WKWebView verification", userAgent },
   cases: [], external: [], pageErrors: [],
@@ -51,7 +51,7 @@ try {
     return route.abort();
   });
   await page.goto(origin);
-  const nav = page.getByRole("navigation", { name: "主导航" });
+  const nav = page.getByRole("navigation", { name: "주 메뉴" });
   await nav.waitFor({ state: "visible" });
   assert(await page.locator(".plat-ios").count() > 0, "The real App must select its iOS mobile shell");
   assert.equal(await page.locator(".win-titlebar").count(), 0, "Mobile navigation must not be rendered inside a desktop shell");

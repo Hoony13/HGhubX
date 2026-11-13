@@ -31,14 +31,14 @@ try {
   await page.goto(`${origin}tests/api-loading.html?page=home`);
   await page.waitForFunction(() => window.apiLoadingFixture.history.length === 1);
   await complete("api_feed", "", "404");
-  await visible(page.getByText("首页加载失败", { exact: true }));
-  await visible(page.getByText(/服务器请求失败（HTTP 404）/));
+  await visible(page.getByText("홈을 불러오지 못했습니다", { exact: true }));
+  await visible(page.getByText(/서버 요청 실패 \(HTTP 404\)/));
   assert.equal(await page.locator(".spinner").count(), 0, "Failed home must stop spinning");
   assert(!await page.locator("body").innerText().then(s => s.includes("<html>")), "Hide gateway HTML from UI");
-  await page.getByRole("button", { name: "重试", exact: true }).click();
+  await page.getByRole("button", { name: "다시 시도", exact: true }).click();
   await page.waitForFunction(() => window.apiLoadingFixture.history.length === 2);
   await complete("api_feed", "", "empty");
-  await visible(page.getByText("暂无视频", { exact: true }));
+  await visible(page.getByText("영상이 없습니다", { exact: true }));
   assert.equal(await page.locator(".spinner").count(), 0);
   report.passed.push("Home: 404 ends loading, readable error, explicit retry, empty result");
 
@@ -50,13 +50,13 @@ try {
   await page.waitForFunction(() => window.apiLoadingFixture.history.length === 4);
   await complete("api_category", "ai-duanju", "item");
   await visible(page.getByText("已加载ai-duanju", { exact: true }));
-  await visible(page.getByRole("region", { name: "AI成人漫剧", exact: true }).getByText("加载中…", { exact: true }));
+  await visible(page.getByRole("region", { name: "AI 성인 애니메이션", exact: true }).getByText("불러오는 중…", { exact: true }));
   await complete("api_original_videos", "all", "empty");
-  await visible(page.getByRole("region", { name: "原创", exact: true }).getByText("暂无内容", { exact: true }));
+  await visible(page.getByRole("region", { name: "오리지널", exact: true }).getByText("콘텐츠가 없습니다", { exact: true }));
   await complete("api_post_category", "", "item");
   await visible(page.getByText("已加载api_post_category", { exact: true }));
   await complete("api_category", "ai-manju", "503");
-  await page.getByRole("button", { name: "重试AI成人漫剧", exact: true }).click();
+  await page.getByRole("button", { name: "다시 시도AI 성인 애니메이션", exact: true }).click();
   await page.waitForFunction(() => window.apiLoadingFixture.history.length === 5);
   await complete("api_category", "ai-manju", "item");
   await visible(page.getByText("已加载ai-manju", { exact: true }));

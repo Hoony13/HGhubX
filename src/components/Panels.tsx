@@ -21,15 +21,15 @@ export function EpisodesPanel({ videoId, episodes, current, onPick, onClose, bar
     <div className="flex flex-col h-full">
       {bare ? (
         <div className="shrink-0 flex items-center gap-2 px-4 pb-2">
-          <span className="text-[12px] text-mut">共 {episodes.length} 集</span>
-          <Button onClick={() => setAsc((v) => !v)} className="ml-auto text-[12px] text-primary pressable">{asc ? "倒序" : "正序"}</Button>
+          <span className="text-[12px] text-mut">총 {episodes.length}화</span>
+          <Button onClick={() => setAsc((v) => !v)} className="ml-auto text-[12px] text-primary pressable">{asc ? "내림차순" : "오름차순"}</Button>
         </div>
       ) : (
         <div className="shrink-0 flex items-center gap-2 px-4 h-12">
-          <span className="text-[14px] font-bold text-on">选集</span>
-          <span className="text-[12px] text-mut">共 {episodes.length} 集</span>
-          <Button onClick={() => setAsc((v) => !v)} className="ml-auto text-[12px] text-primary pressable">{asc ? "倒序" : "正序"}</Button>
-          <Button onClick={onClose} aria-label="关闭" className="w-7 h-7 rounded-full bg-s3 flex items-center justify-center text-mut pressable">
+          <span className="text-[14px] font-bold text-on">회차 선택</span>
+          <span className="text-[12px] text-mut">총 {episodes.length}화</span>
+          <Button onClick={() => setAsc((v) => !v)} className="ml-auto text-[12px] text-primary pressable">{asc ? "내림차순" : "오름차순"}</Button>
+          <Button onClick={onClose} aria-label="닫기" className="w-7 h-7 rounded-full bg-s3 flex items-center justify-center text-mut pressable">
             <IClose size={13} />
           </Button>
         </div>
@@ -43,9 +43,9 @@ export function EpisodesPanel({ videoId, episodes, current, onPick, onClose, bar
             </Button>
           ))}
         </div>
-        {!episodes.length && <div className="text-center text-[12px] text-dim py-8">暂无剧集</div>}
+        {!episodes.length && <div className="text-center text-[12px] text-dim py-8">회차가 없습니다</div>}
       </div>
-      {!bare && <div className="shrink-0 px-4 py-2.5 text-[12px] text-dim bg-s2/60">剧集 ID {videoId} · 点选即切换播放</div>}
+      {!bare && <div className="shrink-0 px-4 py-2.5 text-[12px] text-dim bg-s2/60">작품 ID {videoId} · 선택하면 바로 재생합니다</div>}
     </div>
   );
 }
@@ -93,10 +93,10 @@ export function CommentsPanel({ videoId, ep, total, kind = "video", onClose }: {
     try {
       await api.commentSend(videoId, ep, t);
       setText("");
-      toast("评论已提交，审核通过后展示", "ok");
+      toast("댓글을 등록했습니다. 검토 후 표시됩니다", "ok");
       load(1);
     } catch (e) {
-      toast((e as Error).message || "评论失败", "info");
+      toast((e as Error).message || "댓글 등록 실패", "info");
     } finally {
       setSending(false);
     }
@@ -105,9 +105,9 @@ export function CommentsPanel({ videoId, ep, total, kind = "video", onClose }: {
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 flex items-center gap-2 px-4 h-12">
-        <span className="text-[14px] font-bold text-on">评论</span>
-        <span className="text-[12px] text-mut">{fmt(total)} · 第 {ep} 集</span>
-        <Button onClick={onClose} aria-label="关闭" className="ml-auto w-7 h-7 rounded-full bg-s3 flex items-center justify-center text-mut pressable">
+        <span className="text-[14px] font-bold text-on">댓글</span>
+        <span className="text-[12px] text-mut">{fmt(total)} · {ep}화</span>
+        <Button onClick={onClose} aria-label="닫기" className="ml-auto w-7 h-7 rounded-full bg-s3 flex items-center justify-center text-mut pressable">
           <IClose size={13} />
         </Button>
       </div>
@@ -124,31 +124,31 @@ export function CommentsPanel({ videoId, ep, total, kind = "video", onClose }: {
               <p className="text-[14px] text-on/80 mt-1 leading-relaxed whitespace-pre-wrap">{c.text}</p>
               <div className="flex items-center gap-3 mt-1.5 text-[12px] text-dim">
                 <span className="flex items-center gap-1"><IHeart size={11} />{c.like_count || 0}</span>
-                {c.reply_count > 0 && <span>{c.reply_count} 条回复</span>}
+                {c.reply_count > 0 && <span>{c.reply_count}개 답글</span>}
               </div>
             </div>
           </div>
         )) : loading ? (
           <div className="flex justify-center py-10"><Loader className="w-7 h-7 spinner" /></div>
         ) : (
-          <Empty icon={<IHeart size={22} />} title="还没有评论" sub="来抢第一个沙发" />
+          <Empty icon={<IHeart size={22} />} title="아직 댓글이 없습니다" sub="첫 댓글을 남겨 보세요" />
         )}
         {items.length > 0 && (
           <div className="flex justify-center py-4">
             {loading ? <Loader className="w-5 h-5 spinner" />
               : page < pages ? (
-                <Button onClick={() => load(page + 1)} className="px-4 h-8 rounded-(--r-ctl) bg-s3 text-[12px] text-on/80 pressable">查看更多</Button>
-              ) : <span className="text-[12px] text-dim">— 到底啦 —</span>}
+                <Button onClick={() => load(page + 1)} className="px-4 h-8 rounded-(--r-ctl) bg-s3 text-[12px] text-on/80 pressable">더 보기</Button>
+              ) : <span className="text-[12px] text-dim">— 마지막입니다 —</span>}
           </div>
         )}
       </div>
 
       <Form className="shrink-0 flex items-center gap-2 px-3 py-2.5 bg-s2/70" onSubmit={(e) => { e.preventDefault(); send(); }}>
-        <Avatar size={30} name={user?.nickname || "我"} hue={322} />
+        <Avatar size={30} name={user?.nickname || "나"} hue={322} />
         <Input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
           readOnly={!user} onClick={() => { if (!user) setLoginOpen(true); }}
           onKeyDown={(event) => { if (!user && event.key === "Enter") { event.preventDefault(); setLoginOpen(true); } }}
-          placeholder={user ? "说点什么…" : "登录后参与评论"}
+          placeholder={user ? "댓글을 남겨 주세요…" : "로그인하고 댓글 남기기"}
           className="flex-1 min-w-0 h-9 rounded-(--r-ctl) bg-s4 px-3.5 text-[14px] text-on placeholder-dim outline-none focus:bg-s3" />
         <Button type="submit" disabled={!text.trim() || sending}
           className={`w-9 h-9 rounded-full flex items-center justify-center pressable ${text.trim() ? "brand-grad glow-neon" : "bg-s3 text-dim"}`}>
@@ -166,15 +166,15 @@ export function ArticlePanel({ title, html, cover, hot, onClose }: {
   const safeHtml = useMemo(() => sanitizeHtml(html), [html, strictSecurity]);
   const openSafeLink = (url: string) => {
     api.openUrl(url).catch(() => {
-      copyText(url).then(() => toast("链接已复制", "ok")).catch(() => toast("复制失败", "info"));
+      copyText(url).then(() => toast("링크를 복사했습니다", "ok")).catch(() => toast("복사 실패", "info"));
     });
   };
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 flex items-center gap-2 px-4 h-12">
-        <span className="text-[14px] font-bold text-on">图文详情</span>
-        {hot ? <span className="text-[12px] text-mut">{fmt(hot)} 热度</span> : null}
-        <Button onClick={onClose} aria-label="关闭" className="ml-auto w-7 h-7 rounded-full bg-s3 flex items-center justify-center text-mut pressable">
+        <span className="text-[14px] font-bold text-on">게시물 상세</span>
+        {hot ? <span className="text-[12px] text-mut">{fmt(hot)} 인기도</span> : null}
+        <Button onClick={onClose} aria-label="닫기" className="ml-auto w-7 h-7 rounded-full bg-s3 flex items-center justify-center text-mut pressable">
           <IClose size={13} />
         </Button>
       </div>
@@ -182,7 +182,7 @@ export function ArticlePanel({ title, html, cover, hot, onClose }: {
         {cover && <Image src={imageCover(cover)} alt="" className="w-full rounded-(--r-md) mb-3 object-cover" />}
         <h2 className="text-[16px] font-bold text-on leading-snug">{title}</h2>
         <div className="article-body mt-3" onClick={(e) => handleArticleClick(e, openSafeLink)} dangerouslySetInnerHTML={{ __html: safeHtml }} />
-        {!safeHtml && <p className="text-[13px] text-dim mt-4">这篇内容没有正文，可能只有图片或视频。</p>}
+        {!safeHtml && <p className="text-[13px] text-dim mt-4">본문이 없는 게시물입니다. 이미지나 영상만 있을 수 있습니다.</p>}
       </div>
     </div>
   );

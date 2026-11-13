@@ -136,7 +136,7 @@ fn save_line(current: &mut LineConfig, next: LineConfig, path: Option<&std::path
         let temp = path.with_extension("json.tmp");
         std::fs::write(&temp, json!({ "v": 2, "base": next.base, "custom": next.custom }).to_string())
             .and_then(|_| std::fs::rename(&temp, path))
-            .map_err(|_| "线路保存失败，已保持原线路，请检查应用数据目录")?;
+            .map_err(|_| "서버를 저장하지 못해 기존 서버를 유지합니다. 앱 데이터 폴더를 확인해 주세요")?;
     }
     *current = next;
     Ok(())
@@ -144,13 +144,13 @@ fn save_line(current: &mut LineConfig, next: LineConfig, path: Option<&std::path
 
 fn apply_base(url: &str, custom: bool) -> Result<String, String> {
     let next = normalize_base(url)
-        .ok_or_else(|| "线路地址无效（需要纯 HTTPS 站点地址，禁止内网）".to_string())?;
+        .ok_or_else(|| "서버 주소가 올바르지 않습니다 (HTTPS 기본 주소 필요, 내부망 금지)".to_string())?;
     if !custom && !crate::lines::is_fixed(&next) && !crate::lines::is_trusted_mirror(&next) {
-        return Err("线路不在固定线路或可信发布页清单中".into());
+        return Err("고정 서버 또는 신뢰할 수 있는 안내 페이지에 없는 서버입니다".into());
     }
-    let mut current = BASE.write().map_err(|_| "线路设置锁失败")?;
+    let mut current = BASE.write().map_err(|_| "서버 설정 잠금 실패")?;
     let previous = current.base.clone();
-    let file = BASE_FILE.read().map_err(|_| "线路配置锁失败")?;
+    let file = BASE_FILE.read().map_err(|_| "서버 구성 잠금 실패")?;
     save_line(&mut current, LineConfig { base: next.clone(), custom: custom && next != DEFAULT_BASE }, file.as_deref())?;
     drop(current);
     if previous != next {
@@ -332,10 +332,10 @@ fn build_client(host: &str, addrs: &[SocketAddr], route: &ProxyRoute) -> Result<
     if route.mode == crate::proxy::Mode::Off {
         builder = builder.no_proxy();
     } else if let Some(proxy) = &route.explicit {
-        let proxy = reqwest::Proxy::all(proxy).map_err(|_| "代理配置无效（已隐藏原始值）")?;
+        let proxy = reqwest::Proxy::all(proxy).map_err(|_| "프록시 설정이 올바르지 않습니다 (입력값 숨김)")?;
         builder = builder.no_proxy().proxy(proxy);
     }
-    builder.build().map_err(|_| "无法创建 HTTP 客户端".to_string())
+    builder.build().map_err(|_| "HTTP 클라이언트를 만들 수 없습니다".to_string())
 }
 
 /// One immutable selection is used for DNS, cache identity and client creation.
@@ -430,13 +430,13 @@ fn client_key(strict: bool, host: &str, port: u16, public_dns: bool, route: &Pro
 async fn client_for_dns(raw: &str, public_dns: bool) -> Result<(url::Url, Arc<reqwest::Client>), String> {
     let strict = network_policy::strict_security();
     let target = network_policy::parse_target_with_mode(raw, strict)?;
-    let host = target.host_str().ok_or("目标缺少主机名")?;
-    let port = target.port_or_known_default().ok_or("目标端口无效")?;
+    let host = target.host_str().ok_or("대상 호스트 이름이 없습니다")?;
+    let port = target.port_or_known_default().ok_or("대상 포트가 올바르지 않습니다")?;
     let route = ProxyRoute::for_config(&crate::proxy::snapshot(), &target);
     let proxy = route.active;
     let key = client_key(strict, host, port, public_dns, &route);
     {
-        let cache = CLIENTS.lock().map_err(|_| "HTTP 客户端锁失败")?;
+        let cache = CLIENTS.lock().map_err(|_| "HTTP 클라이언트 잠금 실패")?;
         if let Some(http) = cached_client(&cache, &key, Instant::now()) {
             return Ok((target, http));
         }
@@ -456,7 +456,7 @@ async fn client_for_dns(raw: &str, public_dns: bool) -> Result<(url::Url, Arc<re
     };
     let http = Arc::new(build_client(host, &addrs, &route)?);
     let now = Instant::now();
-    let mut cache = CLIENTS.lock().map_err(|_| "HTTP 客户端锁失败")?;
+    let mut cache = CLIENTS.lock().map_err(|_| "HTTP 클라이언트 잠금 실패")?;
     // 同时到达的请求可能已完成解析；不延长已有结果的有效期。
     let http = cached_client(&cache, &key, now).unwrap_or(http);
     if !cache.get(&key).is_some_and(|(expires, _)| now < *expires) {
@@ -519,20 +519,20 @@ async fn get_with_dns(
                 return Ok(response);
             }
             if hop == 5 {
-                return Err("重定向次数超过限制".into());
+                return Err("리디렉션 횟수 제한 초과".into());
             }
             let location = response
                 .headers()
                 .get(reqwest::header::LOCATION)
                 .and_then(|h| h.to_str().ok())
-                .ok_or("重定向缺少有效 Location")?;
+                .ok_or("리디렉션에 유효한 Location이 없습니다")?;
             next = network_policy::redirect_target(&target, location).map_err(|e| policy_error("redirect", e))?;
             crate::playback_log::record("network.redirect", json!({"resource": crate::playback_log::resource_id(raw), "from": crate::playback_log::resource_id(target.as_str()), "to": crate::playback_log::resource_id(next.as_str()), "status": response.status().as_u16(), "hop": hop + 1}));
         }
-        Err("重定向次数超过限制".into())
+        Err("리디렉션 횟수 제한 초과".into())
     })
     .await
-    .map_err(|_| "请求超时".to_string())?
+    .map_err(|_| "요청 시간 초과".to_string())?
 }
 
 /// 只返回代理的协议/主机/端口；解析失败时隐藏整个值，绝不回传认证或查询参数。
@@ -548,7 +548,7 @@ pub fn redact_proxy(raw: &str) -> String {
             }
             safe
         }
-        None => "[已配置，原始值已隐藏]".into(),
+        None => "[설정됨, 입력값 숨김]".into(),
     }
 }
 
@@ -715,7 +715,7 @@ async fn tcp_probe(addr: Option<SocketAddr>, timeout: Duration) -> Value {
             "mode": "direct_socket",
             "proxy_bypassed": true,
             "skipped": true,
-            "reason": "没有可用的解析结果",
+            "reason": "사용 가능한 조회 결과가 없습니다",
         });
     };
     let started = Instant::now();
@@ -746,7 +746,7 @@ async fn tcp_probe(addr: Option<SocketAddr>, timeout: Duration) -> Value {
             "ok": false,
             "timeout": true,
             "ms": timeout.as_millis() as u64,
-            "error": "连接超时（SYN 无响应）",
+            "error": "연결 시간 초과 (SYN 응답 없음)",
         }),
     }
 }
@@ -770,26 +770,26 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
         if dns_err.is_some() {
             return (
                 "dns_false_alarm",
-                format!("DNS 探测异常，但应用 HTTP 请求已成功（HTTP {code}）"),
+                format!("DNS 검사에 오류가 있지만 앱 HTTP 요청은 성공했습니다 (HTTP {code})"),
                 vec![],
             );
         }
         if fake {
             return (
                 "ok_proxy",
-                format!("DNS 由代理/TUN 接管，应用 HTTP 请求正常（HTTP {code}）"),
+                format!("프록시/TUN이 DNS를 처리 중이며 앱 HTTP 요청은 정상입니다 (HTTP {code})"),
                 vec![],
             );
         }
         if proxy_configured || tcp_ok == Some(false) {
             let direct_note = if tcp_ok == Some(false) {
-                "；独立直连 TCP 探测失败，不影响这次成功的请求"
+                "; 독립적인 직접 TCP 연결 검사 실패는 이번 요청의 성공에 영향을 주지 않습니다"
             } else {
                 ""
             };
             return (
                 "ok_proxy",
-                format!("应用 HTTP 请求已成功（HTTP {code}{direct_note}）"),
+                format!("앱 HTTP 요청에 성공했습니다 (HTTP {code}{direct_note})"),
                 vec![],
             );
         }
@@ -798,13 +798,13 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
         }) {
             return (
                 "dns_hijack",
-                format!("DNS 返回了非公网地址，但应用 HTTP 请求已成功（HTTP {code}）"),
-                vec!["检查本机 DNS、VPN/TUN 和代理设置是否符合预期".into()],
+                format!("DNS가 비공개 주소를 반환했지만 앱 HTTP 요청은 성공했습니다 (HTTP {code})"),
+                vec!["기기의 DNS, VPN/TUN 및 프록시 설정을 확인하세요".into()],
             );
         }
         return (
             "ok",
-            format!("连通正常（HTTP {code}），线路可用"),
+            format!("정상 연결 (HTTP {code}), 사용 가능한 서버"),
             vec![],
         );
     }
@@ -813,8 +813,8 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
     if let Some(code) = status {
         return (
             "http_status",
-            format!("应用 HTTP 请求收到服务端状态码 {code}"),
-            vec!["确认账号或内容权限；若持续出现，请稍后重试".into()],
+            format!("앱 HTTP 요청의 서버 응답 상태 코드: {code}"),
+            vec!["계정 또는 콘텐츠 접근 권한을 확인하세요. 문제가 지속되면 잠시 후 다시 시도하세요".into()],
         );
     }
 
@@ -823,20 +823,20 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
         if proxy_configured {
             return (
                 "proxy_fail",
-                format!("代理请求失败，且本机 DNS 探测也失败：{e}。无法仅凭这两项确定上游故障位置"),
+                format!("프록시 요청과 기기의 DNS 검사가 모두 실패했습니다: {e}. 이 결과만으로 서버 측 장애 위치를 판단할 수 없습니다"),
                 vec![
-                    "确认本机代理服务正在运行，并检查当前代理节点".into(),
-                    "连接代理后重试，或换网络对照".into(),
+                    "기기의 프록시 서비스가 실행 중인지 확인하고 현재 프록시 노드를 점검하세요".into(),
+                    "프록시 연결 후 다시 시도하거나 다른 네트워크와 비교하세요".into(),
                 ],
             );
         }
         return (
             "dns_fail",
-            format!("域名解析失败：{e}"),
+            format!("도메인 조회 실패: {e}"),
             vec![
-                "关掉代理 / 加速器 / VPN 的 TUN 模式后重试（最常见的元凶）".into(),
-                "换网络对比：Wi-Fi 与流量互切".into(),
-                "安卓「私有 DNS」改为自动，或填 223.5.5.5 / 1.1.1.1".into(),
+                "프록시, 네트워크 가속기 또는 VPN의 TUN 모드를 끄고 다시 시도하세요 (흔한 원인)".into(),
+                "Wi-Fi와 모바일 데이터 사이를 전환해 비교하세요".into(),
+                "Android의 비공개 DNS를 자동으로 바꾸거나 223.5.5.5 / 1.1.1.1을 입력하세요".into(),
             ],
         );
     }
@@ -844,15 +844,15 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
         return (
             "fake_ip",
             format!(
-                "解析到 fake-ip（{}），DNS 流量被代理/TUN 接管；代理一断开这个地址不可路由",
+                "fake-ip ({})로 조회되었습니다. 프록시/TUN이 DNS를 처리하므로 프록시 연결이 끊기면 이 주소로 연결할 수 없습니다",
                 suspicious
                     .first()
                     .and_then(|v| v.as_str())
                     .unwrap_or("198.18.x.x")
             ),
             vec![
-                "关掉 Clash / Surge 等代理的 TUN（增强）模式，或直接退出代理".into(),
-                "若必须用代理，请保证代理常驻且节点稳定后再开 App".into(),
+                "Clash / Surge 등 프록시의 TUN (고급) 모드를 끄거나 프록시를 종료하세요".into(),
+                "프록시가 필요하다면 서비스와 노드가 안정적으로 연결된 상태에서 앱을 실행하세요".into(),
             ],
         );
     }
@@ -863,10 +863,10 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
     {
         return (
             "dns_hijack",
-            "解析结果落在回环 / 内网 / 保留地址，DNS 被劫持或线路被污染".into(),
+            "조회 결과가 루프백, 내부망 또는 예약 주소입니다. DNS나 서버 주소가 변조되었을 수 있습니다".into(),
             vec![
-                "换一个 DNS（223.5.5.5、1.1.1.1）后重启 App".into(),
-                "关闭省电模式或系统的「网络加速」类功能".into(),
+                "DNS를 변경한 뒤 (223.5.5.5, 1.1.1.1) 앱을 다시 시작하세요".into(),
+                "절전 모드 또는 시스템의 네트워크 가속 기능을 끄세요".into(),
             ],
         );
     }
@@ -874,16 +874,16 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
         let lower = http_err.to_lowercase();
         if proxy_configured {
             let direct_note = if tcp_ok == Some(false) {
-                "; 独立直连 TCP 探测也失败，但它绕过了应用 HTTP 代理"
+                "; 독립적인 직접 TCP 연결 검사도 실패했지만 앱 HTTP 프록시를 우회한 결과입니다"
             } else {
                 ""
             };
             return (
                 "proxy_fail",
-                format!("应用 HTTP 请求经已配置代理失败：{http_err}{direct_note}"),
+                format!("설정된 프록시를 통한 앱 HTTP 요청 실패: {http_err}{direct_note}"),
                 vec![
-                    "确认本机代理服务正在运行，并检查当前代理节点".into(),
-                    "关闭代理的 HTTPS 解密功能后重试，或切换代理节点".into(),
+                    "기기의 프록시 서비스가 실행 중인지 확인하고 현재 프록시 노드를 점검하세요".into(),
+                    "프록시의 HTTPS 복호화 기능을 끄고 다시 시도하거나 프록시 노드를 변경하세요".into(),
                 ],
             );
         }
@@ -900,31 +900,31 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
                 "http_fail"
             },
             if certificate {
-                format!("TLS 证书校验失败：{http_err}")
+                format!("TLS 인증서 검증 실패: {http_err}")
             } else if handshake {
-                format!("HTTP TLS 握手失败：{http_err}；可能发生在代理、目标站点或中间网络，不能仅凭握手错误判定中间人拦截")
+                format!("HTTP TLS 핸드셰이크 실패: {http_err}. 프록시, 대상 사이트 또는 중간 네트워크 문제일 수 있으며 핸드셰이크 오류만으로 중간자 가로채기로 판단할 수 없습니다")
             } else if tcp_ok == Some(false) {
-                format!("应用 HTTP 请求失败：{http_err}；独立直连 TCP 探测也失败，需要对照网络和代理路径继续定位")
+                format!("앱 HTTP 요청 실패: {http_err}. 독립적인 직접 TCP 연결 검사도 실패했습니다. 네트워크와 프록시 경로를 비교해 원인을 확인해야 합니다")
             } else {
-                format!("HTTP 请求失败：{http_err}")
+                format!("HTTP 요청 실패: {http_err}")
             },
             if certificate {
                 vec![
-                    "检查代理的 HTTPS 解密设置和系统时间".into(),
-                    "换一个网络或代理节点对照".into(),
+                    "프록시의 HTTPS 복호화 설정과 시스템 시간을 확인하세요".into(),
+                    "다른 네트워크 또는 프록시 노드와 비교하세요".into(),
                 ]
             } else if handshake {
                 vec![
-                    "确认系统代理或 VPN/TUN 正常，并尝试更换代理节点".into(),
-                    "换网络重试，区分目标站、代理和中间网络故障".into(),
+                    "시스템 프록시 또는 VPN/TUN이 정상인지 확인하고 프록시 노드를 변경해 보세요".into(),
+                    "다른 네트워크에서 재시도하여 대상 사이트, 프록시 또는 중간 네트워크 장애인지 확인하세요".into(),
                 ]
             } else if tcp_ok == Some(false) {
                 vec![
-                    "检查路由器、VPN/TUN 和防火墙，再换网络对照".into(),
-                    "不要仅凭直连 TCP 超时判断运营商阻断".into(),
+                    "공유기, VPN/TUN 및 방화벽을 점검한 뒤 다른 네트워크와 비교하세요".into(),
+                    "직접 TCP 연결 시간 초과만으로 통신사의 차단이라고 판단하지 마세요".into(),
                 ]
             } else {
-                vec!["稍后重试，或检查当前网络和代理设置".into()]
+                vec!["잠시 후 다시 시도하거나 현재 네트워크와 프록시 설정을 확인하세요".into()]
             },
         );
     }
@@ -933,20 +933,20 @@ fn verdict(dns: &Value, tcp: &Value, http: &Value) -> (&'static str, String, Vec
         return (
             if timeout { "tcp_timeout" } else { "tcp_refused" },
             if timeout {
-                "DNS 正常，但独立直连 TCP socket 探测超时；这不能单独证明运营商或防火墙阻断".to_string()
+                "DNS는 정상이지만 독립적인 직접 TCP 소켓 검사 시간이 초과되었습니다. 이것만으로 통신사나 방화벽의 차단이라고 판단할 수 없습니다".to_string()
             } else {
                 format!(
-                    "DNS 正常，但独立直连 TCP socket 探测失败：{}",
-                    tcp.get("error").and_then(|v| v.as_str()).unwrap_or("未知原因")
+                    "DNS는 정상이지만 독립적인 직접 TCP 소켓 검사에 실패했습니다: {}",
+                    tcp.get("error").and_then(|v| v.as_str()).unwrap_or("알 수 없는 원인")
                 )
             },
             vec![
-                "检查默认路由、VPN/TUN 和防火墙设置".into(),
-                "换网络对照；TCP 探测不经过应用层 HTTP 代理".into(),
+                "기본 경로, VPN/TUN 및 방화벽 설정을 확인하세요".into(),
+                "다른 네트워크와 비교하세요. TCP 검사는 앱의 HTTP 프록시를 거치지 않습니다".into(),
             ],
         );
     }
-    ("unknown", "信息不足：HTTP 请求和 TCP 探测均未给出可归类结果".into(), vec![])
+    ("unknown", "정보 부족: HTTP 요청과 TCP 검사 모두 분류 가능한 결과를 제공하지 않았습니다".into(), vec![])
 }
 
 /// Editable URL is returned only to the settings form; effective is always redacted.
@@ -993,7 +993,7 @@ pub async fn test_proxy(mode: &str, url: &str) -> Value {
     let mut value = match result {
         Ok(Ok(value)) => value,
         Ok(Err(error)) => json!({"ok": false, "error": error}),
-        Err(_) => json!({"ok": false, "error": "代理连通性测试超时（8 秒）"}),
+        Err(_) => json!({"ok": false, "error": "프록시 연결 테스트 시간 초과 (8초)"}),
     };
     value["ms"] = json!(started.elapsed().as_millis() as u64);
     value
@@ -1005,45 +1005,45 @@ async fn probe_proxy_origin(origin: &str, config: &crate::proxy::Config, strict:
     for hop in 0..=5 {
         let route = ProxyRoute::for_config(config, &next);
         let addresses = if strict && !route.active { network_policy::resolve_target(&next, strict).await? } else { Vec::new() };
-        let client = build_client(next.host_str().ok_or("目标缺少主机名")?, &addresses, &route)?;
+        let client = build_client(next.host_str().ok_or("대상 호스트 이름이 없습니다")?, &addresses, &route)?;
         let response = client.post(next.clone())
             .header("Accept", "application/json")
             .header("Referer", format!("{origin}/"))
             .json(&envelope).send().await.map_err(proxy_probe_error)?;
         let status = response.status().as_u16();
         if response.status().is_redirection() {
-            if hop == 5 { return Err("重定向次数超过限制".into()) }
+            if hop == 5 { return Err("리디렉션 횟수 제한 초과".into()) }
             let location = response.headers().get(reqwest::header::LOCATION)
-                .and_then(|value| value.to_str().ok()).ok_or("重定向缺少有效 Location")?;
+                .and_then(|value| value.to_str().ok()).ok_or("리디렉션에 유효한 Location이 없습니다")?;
             next = edge_redirect_target(&next, status, location, true)?;
             continue;
         }
         if status != 200 {
-            return Ok(json!({"ok": false, "status": status, "via": route.label(), "error": "视频接口返回错误状态码"}));
+            return Ok(json!({"ok": false, "status": status, "via": route.label(), "error": "영상 API가 오류 상태 코드를 반환했습니다"}));
         }
         let mut response = response;
         let mut body = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(proxy_probe_error)? {
-            if body.len() + chunk.len() > 1024 * 1024 { return Err("视频接口响应超过测试大小限制".into()) }
+            if body.len() + chunk.len() > 1024 * 1024 { return Err("영상 API 응답이 테스트 크기 제한을 초과했습니다".into()) }
             body.extend_from_slice(&chunk);
         }
         let ok = healthy_proxy_response(status, &body);
         return Ok(if ok {
             json!({"ok": true, "status": status, "via": route.label()})
         } else {
-            json!({"ok": false, "status": status, "via": route.label(), "error": "接口未返回有效视频列表数据"})
+            json!({"ok": false, "status": status, "via": route.label(), "error": "API가 유효한 영상 목록을 반환하지 않았습니다"})
         });
     }
-    Err("重定向次数超过限制".into())
+    Err("리디렉션 횟수 제한 초과".into())
 }
 
 fn proxy_probe_error(error: reqwest::Error) -> String {
     // reqwest's nested transport errors can contain the configured proxy URL.
     // Report the useful category without copying a credential-bearing address.
-    if error.is_timeout() { "代理连通性测试超时" }
-    else if error.is_connect() { "代理或目标连接失败，请检查地址、认证信息和网络" }
-    else if error.is_body() || error.is_decode() { "视频接口响应读取失败" }
-    else { "代理连通性测试请求失败" }.into()
+    if error.is_timeout() { "프록시 연결 테스트 시간 초과" }
+    else if error.is_connect() { "프록시 또는 대상 연결 실패. 주소, 인증 정보 및 네트워크를 확인해 주세요" }
+    else if error.is_body() || error.is_decode() { "영상 API 응답 읽기 실패" }
+    else { "프록시 연결 테스트 요청 실패" }.into()
 }
 
 /// 网络自检：DNS / TCP / HTTP / 代理环境变量，用于远程定位「打不开」。
@@ -1061,7 +1061,7 @@ pub async fn diagnose() -> Value {
     let dns_started = Instant::now();
     let mut first_addr: Option<SocketAddr> = None;
     let dns = if host.is_empty() {
-        json!({ "error": "当前线路没有主机名" })
+        json!({ "error": "현재 서버에 호스트 이름이 없습니다" })
     } else {
         match tokio::time::timeout(
             Duration::from_secs(6),
@@ -1076,12 +1076,12 @@ pub async fn diagnose() -> Value {
                 dns_report(&addrs, ms)
             }
             Ok(Err(e)) => json!({
-                "error": "DNS 解析失败",
+                "error": "DNS 조회 실패",
                 "detail": e.to_string(),
                 "ms": dns_started.elapsed().as_millis() as u64,
             }),
             Err(_) => json!({
-                "error": "DNS 解析超时",
+                "error": "DNS 조회 시간 초과",
                 "timeout": true,
                 "ms": 6000,
             }),
@@ -1124,7 +1124,7 @@ pub async fn diagnose() -> Value {
             "HTTP_PROXY": std::env::var("HTTP_PROXY").ok().map(|p| redact_proxy(&p)),
             "HTTPS_PROXY": std::env::var("HTTPS_PROXY").ok().map(|p| redact_proxy(&p)),
             "ALL_PROXY": std::env::var("ALL_PROXY").ok().map(|p| redact_proxy(&p)),
-            "NO_PROXY": std::env::var("NO_PROXY").ok().map(|_| "[已配置，列表已隐藏]"),
+            "NO_PROXY": std::env::var("NO_PROXY").ok().map(|_| "[설정됨, 목록 숨김]"),
             "HGHUBX_PROXY": proxy_override().map(|p| redact_proxy(&p)),
             "GNOME_PROXY": gnome_proxy().map(|p| redact_proxy(&p)),
             "system_proxy": system_proxy_enabled(),
@@ -1221,7 +1221,7 @@ fn edge_redirect_target(
     guest_get: bool,
 ) -> Result<url::Url, String> {
     if !guest_get || !matches!(status, 301 | 302 | 303) {
-        return Err("业务接口重定向已拒绝".into());
+        return Err("서비스 API 리디렉션이 거부되었습니다".into());
     }
     network_policy::redirect_target(current, location)
 }
@@ -1234,7 +1234,7 @@ pub async fn edge(
     body: Option<Value>,
     token: Option<&str>,
 ) -> Result<Value, String> {
-    let cur = normalize_base(origin).ok_or("业务请求必须使用安全 HTTPS 线路")?;
+    let cur = normalize_base(origin).ok_or("서비스 요청에는 안전한 HTTPS 서버가 필요합니다")?;
     if network_policy::strict_security()
         && (token.is_some()
             || matches!(
@@ -1244,7 +1244,7 @@ pub async fn edge(
         && !trusted_auth_origin(&cur)
     {
         if cur != base() || crate::lines::verify_published_origin(&cur).await.is_err() {
-            return Err("镜像线路仅供游客浏览；登录/注册请切换到固定线路或重新加载发布页验证镜像".into());
+            return Err("미러 서버는 비로그인 탐색만 지원합니다. 로그인/가입하려면 고정 서버로 전환하거나 안내 페이지를 다시 불러와 미러를 확인하세요".into());
         }
     }
     let (encoded, ctype) = match &body {
@@ -1317,13 +1317,13 @@ pub async fn edge(
                     // 逐跳重建并检查客户端；不自动把信封 POST 改成无信封 GET。
                     if status.is_redirection() {
                         if hop == 5 {
-                            return Err("重定向次数超过限制".into());
+                            return Err("리디렉션 횟수 제한 초과".into());
                         }
                         let location = resp
                             .headers()
                             .get(reqwest::header::LOCATION)
                             .and_then(|h| h.to_str().ok())
-                            .ok_or("重定向缺少有效 Location")?;
+                            .ok_or("리디렉션에 유효한 Location이 없습니다")?;
                         next = edge_redirect_target(&target, status.as_u16(), location, guest_get)?;
                         continue;
                     }
@@ -1343,7 +1343,7 @@ pub async fn edge(
                     return serde_json::from_str::<Value>(&text)
                         .map_err(|e| format!("{e}: {}", text.chars().take(160).collect::<String>()));
                 }
-                Err("重定向次数超过限制".into())
+                Err("리디렉션 횟수 제한 초과".into())
             }.await;
             crate::playback_log::record("api.end", json!({
                 "request": request, "attempt": attempt, "operation": operation, "method": method,
@@ -1370,7 +1370,7 @@ pub async fn edge(
             .get("msg")
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
-            .unwrap_or("接口返回失败")
+            .unwrap_or("API 요청 실패")
             .to_string())
     }
 }
@@ -1551,8 +1551,8 @@ mod tests {
             "HTTP 404 Not Found: <html>nginx</html>",
             "HTTP 403 Forbidden",
             "401",
-            "禁止访问内网",
-            "重定向次数超过限制",
+            "내부망 접근 금지",
+            "리디렉션 횟수 제한 초과",
         ] {
             let calls = AtomicUsize::new(0);
             assert!(with_retry(true, || async {
@@ -1563,7 +1563,7 @@ mod tests {
             .is_err());
             assert_eq!(calls.load(Ordering::SeqCst), 1, "{error}");
         }
-        for error in ["HTTP 503 Service Unavailable", "请求超时"] {
+        for error in ["HTTP 503 Service Unavailable", "요청 시간 초과"] {
             let calls = AtomicUsize::new(0);
             let value = with_retry(true, || {
                 let attempt = calls.fetch_add(1, Ordering::SeqCst);
@@ -1640,14 +1640,14 @@ mod tests {
             "family": "IPv6",
             "ok": false,
             "timeout": true,
-            "error": "连接超时（SYN 无响应）",
+            "error": "연결 시간 초과 (SYN 응답 없음)",
         });
         let http = json!({ "status": 200, "proxy_configured": true });
 
         let (code, summary, advice) = verdict(&dns, &tcp, &http);
         assert_eq!(code, "ok_proxy");
         assert!(summary.contains("HTTP 200"));
-        assert!(summary.contains("独立直连 TCP 探测失败"));
+        assert!(summary.contains("독립적인 직접 TCP 연결 검사 실패"));
         assert!(advice.is_empty());
     }
 
@@ -1664,7 +1664,7 @@ mod tests {
             "family": "IPv6",
             "ok": false,
             "timeout": true,
-            "error": "连接超时（SYN 无响应）",
+            "error": "연결 시간 초과 (SYN 응답 없음)",
         });
         let http = json!({
             "proxy_configured": true,
@@ -1674,10 +1674,10 @@ mod tests {
 
         let (code, summary, advice) = verdict(&dns, &tcp, &http);
         assert_eq!(code, "proxy_fail");
-        assert!(summary.contains("应用 HTTP 请求经已配置代理失败"));
-        assert!(summary.contains("绕过了应用 HTTP 代理"));
-        assert!(!summary.contains("运营商"));
-        assert!(advice.iter().any(|item| item.contains("代理节点")));
+        assert!(summary.contains("설정된 프록시를 통한 앱 HTTP 요청 실패"));
+        assert!(summary.contains("앱 HTTP 프록시를 우회"));
+        assert!(!summary.contains("통신사"));
+        assert!(advice.iter().any(|item| item.contains("프록시 노드")));
     }
 
     #[test]
@@ -1696,8 +1696,8 @@ mod tests {
 
         let (code, summary, _) = verdict(&dns, &tcp, &http);
         assert_eq!(code, "http_fail");
-        assert!(summary.contains("独立直连 TCP 探测也失败"));
-        assert!(!summary.contains("运营商"));
+        assert!(summary.contains("독립적인 직접 TCP 연결 검사도 실패"));
+        assert!(!summary.contains("통신사"));
     }
 
     #[test]
@@ -1770,7 +1770,7 @@ mod tests {
             "socks5://[::1]:1080"
         );
         for raw in ["alice:secret@127.0.0.1:7897", "not a url secret", ""] {
-            assert_eq!(redact_proxy(raw), "[已配置，原始值已隐藏]");
+            assert_eq!(redact_proxy(raw), "[설정됨, 입력값 숨김]");
         }
     }
 
@@ -1869,7 +1869,7 @@ mod tests {
             let err = edge("https://mirror.invalid", "POST", path, body, token)
                 .await
                 .unwrap_err();
-            assert!(err.contains("镜像线路仅供游客浏览"));
+            assert!(err.contains("미러 서버는 비로그인 탐색만 지원"));
         }
     }
 
@@ -1883,7 +1883,7 @@ mod tests {
         )
         .await
         .unwrap_err();
-        assert!(err.contains("禁止访问"));
+        assert!(err.contains("접근 금지"));
     }
 
     /// 手动跑：`cargo test --lib -- --ignored net::tests::diag -- --nocapture`

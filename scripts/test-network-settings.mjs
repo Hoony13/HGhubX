@@ -40,7 +40,7 @@ try {
         if (command === "app_boot") return { strict_security: true, base: fixture.base, user: fixture.loggedIn ? { id: 9, username: "fixture-user" } : null };
         if (command === "debug_log" || command === "playback_log_write" || command === "line_cancel") return;
         if (command === "playback_log_status") return { enabled: false, path: "fixture.log", error: null };
-        if (command === "line_state") return { base: fixture.base, custom: fixture.custom, default: MAIN, fixed: [{ name: "固定线路", url: MAIN }] };
+        if (command === "line_state") return { base: fixture.base, custom: fixture.custom, default: MAIN, fixed: [{ name: "고정 서버", url: MAIN }] };
         if (command === "line_mirrors") return { source: "fixture", recommended: [], items: [{ url: "https://published.fixture.invalid" }] };
         if (command === "line_custom_set" || command === "line_reset" || command === "line_set") {
           const next = command === "line_reset" ? MAIN : args.url;
@@ -49,11 +49,11 @@ try {
           return command === "line_set" ? fixture.base : { base: fixture.base, custom: fixture.custom };
         }
         if (command === "proxy_state") {
-          if (fixture.failState) throw "fixture: 代理读取失败";
+          if (fixture.failState) throw "fixture: proxy read failed";
           return { ...fixture.proxy };
         }
         if (command === "proxy_set") {
-          if (fixture.failSave) throw "fixture: 保存失败，已保持原配置";
+          if (fixture.failSave) throw "fixture: save failed; previous configuration retained";
           fixture.proxy = { ...fixture.proxy, mode: args.mode, url: args.url || fixture.proxy.url,
             effective: args.mode === "custom" ? "http://127.0.0.1:7890" : null };
           return { ...fixture.proxy };
@@ -74,30 +74,30 @@ try {
 
   if (expectMissing) {
     const { page, context } = await open();
-    assert.equal(await row(page, "代理访问").count(), 0);
-    await row(page, "播放源").click();
-    const dialog = page.getByRole("dialog", { name: "选择播放源" });
-    await dialog.getByRole("button").filter({ hasText: "固定线路" }).waitFor();
-    assert.equal(await dialog.getByRole("textbox", { name: "镜像地址" }).count(), 0);
+    assert.equal(await row(page, "프록시 연결").count(), 0);
+    await row(page, "재생 서버").click();
+    const dialog = page.getByRole("dialog", { name: "재생 서버 선택" });
+    await dialog.getByRole("button").filter({ hasText: "고정 서버" }).waitFor();
+    assert.equal(await dialog.getByRole("textbox", { name: "미러 주소" }).count(), 0);
     report.passed.push("BASELINE: proxy settings and custom mirror form absent; existing line picker remains usable");
     await context.close();
   } else {
   {
     const { page, context } = await open();
-    await row(page, "播放源").click();
-    const dialog = page.getByRole("dialog", { name: "选择播放源" });
-    const input = dialog.getByRole("textbox", { name: "镜像地址" });
+    await row(page, "재생 서버").click();
+    const dialog = page.getByRole("dialog", { name: "재생 서버 선택" });
+    const input = dialog.getByRole("textbox", { name: "미러 주소" });
     await input.fill("http://bad.fixture.invalid/path");
-    await dialog.getByRole("button", { name: "保存镜像" }).click();
+    await dialog.getByRole("button", { name: "미러 저장" }).click();
     await dialog.getByRole("alert").waitFor();
     assert.equal((await calls(page, "line_custom_set")).length, 0);
     await input.fill("https://custom.fixture.invalid");
-    await dialog.getByRole("button", { name: "保存镜像" }).click();
+    await dialog.getByRole("button", { name: "미러 저장" }).click();
     await page.waitForFunction(() => window.networkSettingsFixture.custom && window.lineSelectionSnapshot.lineEpoch > 0);
     assert.equal(await page.evaluate(() => window.lineSelectionControls.autoLineEnabled()), false);
     assert.equal(await page.evaluate(() => window.lineSelectionSnapshot.user), null);
     assert.equal(await input.inputValue(), "https://custom.fixture.invalid");
-    await dialog.getByRole("button", { name: "恢复主站" }).click();
+    await dialog.getByRole("button", { name: "기본 서버 복원" }).click();
     await page.waitForFunction(() => window.networkSettingsFixture.base === "https://main.fixture.invalid");
     assert.equal(await input.inputValue(), "");
     assert.equal((await calls(page, "line_reset")).length, 1);
@@ -110,15 +110,15 @@ try {
       window.networkSettingsFixture.base = "https://custom.fixture.invalid";
       window.networkSettingsFixture.custom = true;
     });
-    await row(page, "播放源").click();
-    const dialog = page.getByRole("dialog", { name: "选择播放源" });
-    const input = dialog.getByRole("textbox", { name: "镜像地址" });
+    await row(page, "재생 서버").click();
+    const dialog = page.getByRole("dialog", { name: "재생 서버 선택" });
+    const input = dialog.getByRole("textbox", { name: "미러 주소" });
     await page.waitForFunction(() => document.querySelector("#custom-line-address")?.value === "https://custom.fixture.invalid");
-    await dialog.getByRole("button", { name: "保存镜像" }).click();
+    await dialog.getByRole("button", { name: "미러 저장" }).click();
     await page.waitForFunction(() => window.networkSettingsFixture.lineChanges === 1);
     assert.equal(await page.evaluate(() => window.lineSelectionSnapshot.user?.id), 9);
-    await dialog.getByRole("button", { name: "关闭", exact: true }).click();
-    await row(page, "播放源").click();
+    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
+    await row(page, "재생 서버").click();
     await page.waitForFunction(() => document.querySelector("#custom-line-address")?.value === "https://custom.fixture.invalid");
     assert.equal(await input.inputValue(), "https://custom.fixture.invalid");
     report.passed.push("Saved custom address fills the form after reopen; saving unchanged origin preserves login");
@@ -127,45 +127,45 @@ try {
   {
     const { page, context } = await open();
     await page.evaluate(() => { window.networkSettingsFixture.failState = true; });
-    await row(page, "代理访问").click();
-    const dialog = page.getByRole("dialog", { name: "代理访问" });
+    await row(page, "프록시 연결").click();
+    const dialog = page.getByRole("dialog", { name: "프록시 연결" });
     await dialog.getByRole("alert").waitFor();
-    assert.equal(await dialog.getByRole("button", { name: "保存代理" }).isDisabled(), true);
-    assert.equal(await dialog.getByRole("button", { name: "测试连接" }).isDisabled(), true);
+    assert.equal(await dialog.getByRole("button", { name: "프록시 저장" }).isDisabled(), true);
+    assert.equal(await dialog.getByRole("button", { name: "연결 테스트" }).isDisabled(), true);
     await page.evaluate(() => { window.networkSettingsFixture.failState = false; });
-    await dialog.getByRole("button", { name: "重新读取" }).click();
-    await dialog.getByRole("button", { name: "自定义", exact: true }).click();
-    await dialog.getByRole("button", { name: "保存代理" }).click();
-    await dialog.getByText("请填写代理地址", { exact: true }).waitFor();
-    const input = dialog.getByLabel("代理地址", { exact: true });
+    await dialog.getByRole("button", { name: "다시 읽기" }).click();
+    await dialog.getByRole("button", { name: "사용자 지정", exact: true }).click();
+    await dialog.getByRole("button", { name: "프록시 저장" }).click();
+    await dialog.getByText("프록시 주소를 입력해 주세요", { exact: true }).waitFor();
+    const input = dialog.getByLabel("프록시 주소", { exact: true });
     await input.fill("http://fixture-user:fixture-password@127.0.0.1:7890");
     assert.equal(await input.getAttribute("type"), "password");
     await page.evaluate(() => { window.networkSettingsFixture.holdTest = true; });
-    await dialog.getByRole("button", { name: "测试连接" }).click();
+    await dialog.getByRole("button", { name: "연결 테스트" }).click();
     await page.waitForFunction(() => !!window.networkSettingsFixture.releaseTest);
     assert.equal(await input.isDisabled(), true);
-    assert.equal(await dialog.getByRole("button", { name: "保存代理" }).isDisabled(), true);
+    assert.equal(await dialog.getByRole("button", { name: "프록시 저장" }).isDisabled(), true);
     await page.evaluate(() => { window.networkSettingsFixture.releaseTest(); });
-    await dialog.getByText("可用 · 42ms", { exact: true }).waitFor();
+    await dialog.getByText("사용 가능 · 42ms", { exact: true }).waitFor();
     await input.fill("http://127.0.0.1:7890");
-    assert.equal(await dialog.getByText("可用 · 42ms", { exact: true }).count(), 0);
+    assert.equal(await dialog.getByText("사용 가능 · 42ms", { exact: true }).count(), 0);
     await page.evaluate(() => { window.networkSettingsFixture.failSave = true; });
-    await dialog.getByRole("button", { name: "保存代理" }).click();
-    await dialog.getByText("fixture: 保存失败，已保持原配置", { exact: true }).waitFor();
+    await dialog.getByRole("button", { name: "프록시 저장" }).click();
+    await dialog.getByText("fixture: save failed; previous configuration retained", { exact: true }).waitFor();
     assert.equal(await input.inputValue(), "http://127.0.0.1:7890");
     assert.equal(await page.evaluate(() => window.networkSettingsFixture.proxy.mode), "system");
     await page.evaluate(() => { window.networkSettingsFixture.failSave = false; });
-    await dialog.getByRole("button", { name: "保存代理" }).click();
+    await dialog.getByRole("button", { name: "프록시 저장" }).click();
     await dialog.waitFor({ state: "hidden" });
     assert.equal(await page.evaluate(() => window.networkSettingsFixture.proxyChanges), 1);
     assert.equal(await page.evaluate(() => window.networkSettingsFixture.lineChanges), 0);
     await page.waitForFunction(() => window.lineSelectionSnapshot.lineEpoch > 0);
     assert.equal(await page.evaluate(() => window.lineSelectionSnapshot.user?.id), 9);
     report.passed.push("Proxy load failure blocks actions; retry works; address concealed; test blocks edits/save; edits clear stale result; failed save retains draft; successful save emits proxy-only event and preserves user");
-    await row(page, "代理访问").click();
-    await dialog.getByLabel("代理地址", { exact: true }).fill("invalid draft");
-    await dialog.getByRole("button", { name: "直连", exact: true }).click();
-    await dialog.getByRole("button", { name: "保存代理" }).click();
+    await row(page, "프록시 연결").click();
+    await dialog.getByLabel("프록시 주소", { exact: true }).fill("invalid draft");
+    await dialog.getByRole("button", { name: "직접 연결", exact: true }).click();
+    await dialog.getByRole("button", { name: "프록시 저장" }).click();
     await dialog.waitFor({ state: "hidden" });
     const saved = (await calls(page, "proxy_set")).at(-1);
     assert.deepEqual(saved.args, { mode: "off", url: "" });
@@ -175,28 +175,28 @@ try {
   }
   {
     const { page, context } = await open();
-    await row(page, "代理访问").click();
-    const dialog = page.getByRole("dialog", { name: "代理访问" });
+    await row(page, "프록시 연결").click();
+    const dialog = page.getByRole("dialog", { name: "프록시 연결" });
     await page.evaluate(() => { window.networkSettingsFixture.holdTest = true; });
-    await dialog.getByRole("button", { name: "测试连接" }).click();
+    await dialog.getByRole("button", { name: "연결 테스트" }).click();
     await page.waitForFunction(() => !!window.networkSettingsFixture.releaseTest);
     await page.evaluate(() => { window.dispatchEvent(new Event("hg:line-changed")); window.networkSettingsFixture.releaseTest(); });
-    await dialog.getByText("线路已更新，请重新检测当前线路", { exact: true }).waitFor();
-    assert.equal(await dialog.getByText("可用 · 42ms", { exact: true }).count(), 0);
+    await dialog.getByText("서버가 변경되었습니다. 현재 서버를 다시 검사해 주세요", { exact: true }).waitFor();
+    assert.equal(await dialog.getByText("사용 가능 · 42ms", { exact: true }).count(), 0);
     report.passed.push("Line changes while proxy test is pending discard the result for the former destination");
     await context.close();
   }
   for (const options of [{ mobile: true, theme: "dark" }, { mobile: true, theme: "light" }, { mobile: true, theme: "dark", width: 812, height: 375 }]) {
     const { page, context } = await open(options);
-    await row(page, "代理访问").click();
-    const dialog = page.getByRole("dialog", { name: "代理访问" });
-    await dialog.getByRole("button", { name: "自定义", exact: true }).click();
-    await dialog.getByLabel("代理地址", { exact: true }).fill("https://proxy-with-a-long-host-name.fixture.invalid:8443");
-    await dialog.getByRole("button", { name: "显示地址" }).click();
+    await row(page, "프록시 연결").click();
+    const dialog = page.getByRole("dialog", { name: "프록시 연결" });
+    await dialog.getByRole("button", { name: "사용자 지정", exact: true }).click();
+    await dialog.getByLabel("프록시 주소", { exact: true }).fill("https://proxy-with-a-long-host-name.fixture.invalid:8443");
+    await dialog.getByRole("button", { name: "주소 표시" }).click();
     const widths = await dialog.evaluate(node => ({ width: node.clientWidth, scroll: node.scrollWidth }));
     assert(widths.scroll <= widths.width + 1, JSON.stringify(widths));
-    await dialog.getByRole("button", { name: "保存代理" }).scrollIntoViewIfNeeded();
-    const box = await dialog.getByRole("button", { name: "保存代理" }).boundingBox();
+    await dialog.getByRole("button", { name: "프록시 저장" }).scrollIntoViewIfNeeded();
+    const box = await dialog.getByRole("button", { name: "프록시 저장" }).boundingBox();
     assert(box.height >= 44 && box.x >= 0 && box.x + box.width <= (options.width || 375));
     await page.screenshot({ path: join(output, `proxy-${options.theme}-${options.width || 375}.png`), fullPage: true, animations: "disabled" });
     report.passed.push(`Proxy form fits ${options.width || 375}x${options.height || 812} ${options.theme}; long address, reduced motion, scrollable actions and touch targets`);

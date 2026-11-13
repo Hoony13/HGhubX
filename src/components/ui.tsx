@@ -80,7 +80,7 @@ export function ToastHost() {
             </span>
             <div className="min-w-0">
               <div className="text-[14px] font-semibold text-on leading-tight">
-                {t.line.region === "cn" ? "国内线路" : "国外线路"}
+                {t.line.region === "cn" ? "중국 서버" : "해외 서버"}
               </div>
               <div className="text-[12px] text-dim leading-tight mt-0.5 truncate">{t.line.host}</div>
             </div>
@@ -141,7 +141,7 @@ export function useLongPress(cb: (e: { clientX: number; clientY: number }) => vo
 /* ——— 关闭按钮 ——— */
 export function CloseBtn({ onClick }: { onClick: () => void }) {
   return (
-    <Button aria-label="关闭" onClick={onClick} className="ios-icon-button bg-s3/80 text-mut">
+    <Button aria-label="닫기" onClick={onClick} className="ios-icon-button bg-s3/80 text-mut">
       <IClose size={16} />
     </Button>
   );
@@ -158,7 +158,7 @@ export function Img({ src, alt = "", className = "", eager = false, raw = false 
   return (
     <div className={`ios-image absolute inset-0 overflow-hidden ${className}`} data-ui="image-frame">
       {!ok && !err && <div className="absolute inset-0 shimmer" />}
-      {err && <div className="ios-image-error" role="img" aria-label={alt || "封面暂不可用"}>HG</div>}
+      {err && <div className="ios-image-error" role="img" aria-label={alt || "표지 이미지를 불러올 수 없습니다"}>HG</div>}
       <Image src={url} alt={alt} loading={eager ? "eager" : "lazy"} onLoad={() => setOk(true)} onError={() => setErr(true)}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ok ? "opacity-100" : "opacity-0"}`} draggable={false} />
     </div>

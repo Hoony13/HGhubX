@@ -147,7 +147,7 @@ function DialogFrame({ open, onClose, children, kind, width, label, z }: {
             && !event.currentTarget.contains(event.relatedTarget)) autoFocusPrevious.current = event.relatedTarget;
         }}
         aria-hidden={!open || undefined} inert={!open ? true : undefined}>
-        <Button className="ios-overlay-backdrop" aria-label="关闭对话框" onClick={onClose} tabIndex={-1} />
+        <Button className="ios-overlay-backdrop" aria-label="대화상자 닫기" onClick={onClose} tabIndex={-1} />
         <div role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} className="ios-dialog" onKeyDown={event => event.stopPropagation()}
           style={{ "--ios-dialog-width": `${width ?? 440}px` } as CSSProperties}>
           {kind === "sheet" && <div className="ios-sheet-grip" aria-hidden="true" />}
@@ -159,11 +159,11 @@ function DialogFrame({ open, onClose, children, kind, width, label, z }: {
 }
 
 export function Modal(props: { open: boolean; onClose: () => void; children: ReactNode; width?: number; label?: string }) {
-  return <DialogFrame {...props} kind="modal" label={props.label ?? "对话框"} />;
+  return <DialogFrame {...props} kind="modal" label={props.label ?? "대화상자"} />;
 }
 export function Sheet(props: { open: boolean; onClose: () => void; children: ReactNode; z?: string; label?: string }) {
-  return <DialogFrame {...props} kind="sheet" label={props.label ?? "详情面板"} />;
+  return <DialogFrame {...props} kind="sheet" label={props.label ?? "상세 패널"} />;
 }
 export function DockPanel(props: { open: boolean; onClose: () => void; children: ReactNode; width?: number; label?: string }) {
-  return <DialogFrame {...props} kind="dock" label={props.label ?? "侧边面板"} width={props.width ?? 380} />;
+  return <DialogFrame {...props} kind="dock" label={props.label ?? "사이드 패널"} width={props.width ?? 380} />;
 }

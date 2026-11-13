@@ -24,15 +24,15 @@ pub fn start() {
         let listener = match TcpListener::bind(("127.0.0.1", PORT)) {
             Ok(listener) => listener,
             Err(err) => {
-                eprintln!("[hg] 媒体端口 {PORT} 绑定失败：{err}");
+                eprintln!("[hg] 미디어 포트 {PORT} 바인딩 실패: {err}");
                 return;
             }
         };
-        eprintln!("[hg] 媒体代理就绪：{ORIGIN}");
+        eprintln!("[hg] 미디어 프록시 준비 완료: {ORIGIN}");
         for stream in listener.incoming().flatten() {
             std::thread::spawn(move || {
                 if let Err(err) = serve(stream) {
-                    eprintln!("[hg] 媒体请求失败：{err}");
+                    eprintln!("[hg] 미디어 요청 실패: {err}");
                 }
             });
         }

@@ -46,24 +46,25 @@ pub fn resource_id(raw: &str) -> String {
 }
 
 pub fn error_kind(error: &str) -> &'static str {
-    if error.contains("禁止") || error.contains("只允许") || error.contains("控制字符") {
-        if error.contains("降级") {
+    if error.contains("禁止") || error.contains("只允许") || error.contains("控制字符")
+        || error.contains("금지") || error.contains("만 허용") || error.contains("제어 문자") {
+        if error.contains("降级") || error.contains("다운그레이드") {
             "https_downgrade_denied"
-        } else if error.contains("内网") || error.contains("保留地址") {
+        } else if error.contains("内网") || error.contains("保留地址") || error.contains("내부망") || error.contains("예약 주소") {
             "private_address_denied"
         } else {
             "target_policy_denied"
         }
     } else if error.contains("DNS") {
         "dns_error"
-    } else if error.contains("超时")
+    } else if error.contains("超时") || error.contains("시간 초과")
         || error.to_ascii_lowercase().contains("timeout")
         || error.to_ascii_lowercase().contains("timed out")
     {
         "timeout"
     } else if error.starts_with("HTTP ") {
         "http_error"
-    } else if error.contains("重定向") {
+    } else if error.contains("重定向") || error.contains("리디렉션") {
         "redirect_error"
     } else {
         "transport_error"
@@ -129,17 +130,17 @@ impl Journal {
     }
 
     fn append(&mut self, event: &str, data: Value, limit: u64) -> Result<(), String> {
-        let dir = self.dir.as_ref().ok_or("日志目录尚未初始化")?;
+        let dir = self.dir.as_ref().ok_or("로그 폴더가 초기화되지 않았습니다")?;
         let path = dir.join("playback.log");
         let ts = crate::logging::utc_timestamp()?;
         let line = json!({ "ts": ts, "pid": std::process::id(), "seq": SEQ.fetch_add(1, Ordering::Relaxed), "event": event, "strict": crate::network_policy::strict_security(), "data": scrub(&data, 0) }).to_string() + "\n";
         if fs::metadata(&path).map(|m| m.len()).unwrap_or(0) + line.len() as u64 > limit {
             let previous = dir.join("playback.previous.log");
             if previous.exists() {
-                fs::remove_file(&previous).map_err(|_| "无法轮转诊断日志")?;
+                fs::remove_file(&previous).map_err(|_| "진단 로그를 순환 저장할 수 없습니다")?;
             }
             if path.exists() {
-                fs::rename(&path, previous).map_err(|_| "无法轮转诊断日志")?;
+                fs::rename(&path, previous).map_err(|_| "진단 로그를 순환 저장할 수 없습니다")?;
             }
         }
         OpenOptions::new()
@@ -147,22 +148,22 @@ impl Journal {
             .append(true)
             .open(path)
             .and_then(|mut f| f.write_all(line.as_bytes()))
-            .map_err(|_| "无法写入诊断日志".to_string())
+            .map_err(|_| "진단 로그를 저장할 수 없습니다".to_string())
     }
 
     fn set(&mut self, on: bool) -> Result<(), String> {
-        let dir = self.dir.as_ref().ok_or("日志目录尚未初始化")?;
+        let dir = self.dir.as_ref().ok_or("로그 폴더가 초기화되지 않았습니다")?;
         if on {
             OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(dir.join("playback.log"))
-                .map_err(|_| "无法创建诊断日志")?;
+                .map_err(|_| "진단 로그를 만들 수 없습니다")?;
         }
         let temp = dir.join("playback-diagnostics.json.tmp");
         fs::write(&temp, json!({"enabled": on}).to_string())
             .and_then(|_| fs::rename(&temp, dir.join("playback-diagnostics.json")))
-            .map_err(|_| "无法保存日志开关")?;
+            .map_err(|_| "로그 활성화 설정을 저장할 수 없습니다")?;
         self.enabled = on;
         self.error = None;
         if let Err(e) = self.append("diagnostics.toggle", json!({"enabled": on, "version": env!("CARGO_PKG_VERSION"), "os": std::env::consts::OS}), MAX_FILE) { self.error = Some(e); }
@@ -206,12 +207,12 @@ pub fn record(event: &str, data: Value) {
 
 #[tauri::command]
 pub fn playback_log_status() -> Result<Status, String> {
-    Ok(LOG.lock().map_err(|_| "日志锁失败")?.status())
+    Ok(LOG.lock().map_err(|_| "로그 잠금 실패")?.status())
 }
 
 #[tauri::command]
 pub fn playback_log_set(enabled: bool) -> Result<Status, String> {
-    let mut log = LOG.lock().map_err(|_| "日志锁失败")?;
+    let mut log = LOG.lock().map_err(|_| "로그 잠금 실패")?;
     let result = log.set(enabled);
     ENABLED.store(log.enabled, Ordering::Relaxed);
     result?;
@@ -224,9 +225,9 @@ pub fn playback_log_write(entries: Vec<Entry>) -> Result<(), String> {
         return Ok(());
     }
     if entries.len() > 128 {
-        return Err("日志批次过大".into());
+        return Err("로그 배치 크기가 너무 큽니다".into());
     }
-    let mut log = LOG.lock().map_err(|_| "日志锁失败")?;
+    let mut log = LOG.lock().map_err(|_| "로그 잠금 실패")?;
     if !log.enabled {
         return Ok(());
     }
@@ -238,7 +239,7 @@ pub fn playback_log_write(entries: Vec<Entry>) -> Result<(), String> {
                 .all(|c| c.is_ascii_alphanumeric() || b"._-".contains(&c))
             || entry.data.to_string().len() > 8192
         {
-            return Err("日志条目无效".into());
+            return Err("로그 항목이 올바르지 않습니다".into());
         }
         log.append(&format!("web.{}", entry.event), entry.data, MAX_FILE)?;
     }
@@ -247,8 +248,8 @@ pub fn playback_log_write(entries: Vec<Entry>) -> Result<(), String> {
 
 #[tauri::command]
 pub fn playback_log_read() -> Result<String, String> {
-    let log = LOG.lock().map_err(|_| "日志锁失败")?;
-    let dir = log.dir.as_ref().ok_or("日志目录尚未初始化")?;
+    let log = LOG.lock().map_err(|_| "로그 잠금 실패")?;
+    let dir = log.dir.as_ref().ok_or("로그 폴더가 초기화되지 않았습니다")?;
     let base = crate::net::base();
     let host = base.split("://").nth(1).unwrap_or(&base);
     let host = host.split('/').next().unwrap_or(host);
@@ -256,10 +257,10 @@ pub fn playback_log_read() -> Result<String, String> {
     for name in ["playback.previous.log", "playback.log"] {
         let path = dir.join(name);
         if path.exists() {
-            if fs::metadata(&path).map_err(|_| "无法读取日志")?.len() > MAX_FILE + 16384 {
-                return Err("日志文件超出大小限制".into());
+            if fs::metadata(&path).map_err(|_| "로그를 읽을 수 없습니다")?.len() > MAX_FILE + 16384 {
+                return Err("로그 파일이 크기 제한을 초과했습니다".into());
             }
-            let body = fs::read_to_string(path).map_err(|_| "无法读取日志")?;
+            let body = fs::read_to_string(path).map_err(|_| "로그를 읽을 수 없습니다")?;
             text.push_str(body.trim_end_matches('\n'));
             text.push('\n');
         }
@@ -279,7 +280,7 @@ fn debug_lines(dir: &Path) -> Result<Vec<String>, String> {
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let bytes = fs::read(&path).map_err(|_| "无法读取日志")?;
+    let bytes = fs::read(&path).map_err(|_| "로그를 읽을 수 없습니다")?;
     let start = bytes.len().saturating_sub(64 * 1024);
     let tail = String::from_utf8_lossy(&bytes[start..]);
     let pid = std::process::id();
@@ -339,8 +340,12 @@ mod tests {
     fn connection_timeout_and_policy_errors_keep_their_categories() {
         assert_eq!(error_kind("client error (Connect) ← operation timed out"), "timeout");
         assert_eq!(error_kind("request timeout"), "timeout");
-        assert_eq!(error_kind("DNS 解析超时"), "dns_error");
+        assert_eq!(error_kind("요청 시간 초과"), "timeout");
+        assert_eq!(error_kind("HTTPS 다운그레이드 리디렉션 금지"), "https_downgrade_denied");
+        assert_eq!(error_kind("리디렉션 횟수 제한 초과"), "redirect_error");
         assert_eq!(error_kind("禁止访问普通内网"), "private_address_denied");
+        assert_eq!(error_kind("DNS 조회 시간 초과"), "dns_error");
+        assert_eq!(error_kind("일반 내부망 접근 금지"), "private_address_denied");
         assert_eq!(error_kind("HTTP 403 Forbidden"), "http_error");
     }
 

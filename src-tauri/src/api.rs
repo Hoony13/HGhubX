@@ -39,7 +39,7 @@ impl Api {
         let token = self
             .session
             .token(&origin)
-            .ok_or_else(|| "请先登录".to_string())?;
+            .ok_or_else(|| "먼저 로그인해 주세요".to_string())?;
         edge(&origin, method, path, body, Some(&token)).await
     }
 }
@@ -64,7 +64,7 @@ pub async fn net_diag() -> Result<Value, String> {
 static LINE_SELECTION: std::sync::Mutex<u64> = std::sync::Mutex::new(0);
 
 fn begin_line_selection() -> Result<u64, String> {
-    let mut generation = LINE_SELECTION.lock().map_err(|_| "线路选择锁失败")?;
+    let mut generation = LINE_SELECTION.lock().map_err(|_| "서버 선택 잠금 실패")?;
     *generation = generation.wrapping_add(1);
     Ok(*generation)
 }
@@ -88,7 +88,7 @@ pub async fn line_state() -> Result<Value, String> {
 /// 手动切换线路：只允许固定线路或刚从可信发布页读取的镜像。
 #[tauri::command]
 pub async fn line_set(state: State<'_, Api>, url: String) -> Result<String, String> {
-    let mut generation = LINE_SELECTION.lock().map_err(|_| "线路选择锁失败")?;
+    let mut generation = LINE_SELECTION.lock().map_err(|_| "서버 선택 잠금 실패")?;
     *generation = generation.wrapping_add(1);
     let previous = base();
     let applied = crate::net::set_base(&url)?;
@@ -101,7 +101,7 @@ pub async fn line_set(state: State<'_, Api>, url: String) -> Result<String, Stri
 
 #[tauri::command]
 pub async fn line_custom_set(state: State<'_, Api>, url: String) -> Result<Value, String> {
-    let mut generation = LINE_SELECTION.lock().map_err(|_| "线路选择锁失败")?;
+    let mut generation = LINE_SELECTION.lock().map_err(|_| "서버 선택 잠금 실패")?;
     *generation = generation.wrapping_add(1);
     let previous = base();
     let applied = crate::net::set_custom_base(&url)?;
@@ -125,7 +125,7 @@ pub async fn proxy_state() -> Result<Value, String> {
 pub async fn proxy_set(mode: String, url: String) -> Result<Value, String> {
     // Serialize with line application: probes using the previous proxy must
     // never switch the line after the new proxy has been saved.
-    let mut generation = LINE_SELECTION.lock().map_err(|_| "线路选择锁失败")?;
+    let mut generation = LINE_SELECTION.lock().map_err(|_| "서버 선택 잠금 실패")?;
     crate::proxy::set(&mode, &url)?;
     *generation = generation.wrapping_add(1);
     crate::net::refresh_client();
@@ -170,7 +170,7 @@ pub async fn line_auto() -> Result<Value, String> {
         .unwrap_or_default()
         .to_string();
     let mut switched = false;
-    let generation = LINE_SELECTION.lock().map_err(|_| "线路选择锁失败")?;
+    let generation = LINE_SELECTION.lock().map_err(|_| "서버 선택 잠금 실패")?;
     let previous = base();
     if *generation == selection
         && pick.get("reason").and_then(Value::as_str) != Some("all-down")
@@ -197,7 +197,7 @@ pub async fn line_try_main() -> Result<Value, String> {
     crate::net::refresh_client();
     let probe = crate::lines::try_main().await;
     let mut switched = false;
-    let generation = LINE_SELECTION.lock().map_err(|_| "线路选择锁失败")?;
+    let generation = LINE_SELECTION.lock().map_err(|_| "서버 선택 잠금 실패")?;
     let previous = base();
     if *generation == selection && probe.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         let chosen = probe.get("base").and_then(Value::as_str).unwrap_or_default();
@@ -296,7 +296,7 @@ pub async fn check_update() -> Result<Value, String> {
         }));
     }
     if !status.is_success() {
-        return Err(format!("GitHub 返回 HTTP {status}"));
+        return Err(format!("GitHub 응답: HTTP {status}"));
     }
 
     let v: Value = resp.json().await.map_err(|e| crate::net::err_text(&e))?;
@@ -574,11 +574,11 @@ pub async fn api_login(
     let token = data
         .get("token")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "登录返回缺少 token".to_string())?
+        .ok_or_else(|| "로그인 응답에 토큰이 없습니다".to_string())?
         .to_string();
     let user = data.get("user").cloned().unwrap_or(Value::Null);
     if base() != origin {
-        return Err("登录期间线路已变化，请重新登录".into());
+        return Err("로그인 중 서버가 변경되었습니다. 다시 로그인해 주세요".into());
     }
     state.session.set(&origin, token, user.clone());
     Ok(json!({ "user": user }))
@@ -611,11 +611,11 @@ pub async fn api_register(
     let token = data
         .get("token")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "注册返回缺少 token".to_string())?
+        .ok_or_else(|| "가입 응답에 토큰이 없습니다".to_string())?
         .to_string();
     let user = data.get("user").cloned().unwrap_or(Value::Null);
     if base() != origin {
-        return Err("注册期间线路已变化，请重新登录".into());
+        return Err("가입 중 서버가 변경되었습니다. 다시 로그인해 주세요".into());
     }
     state.session.set(&origin, token, user.clone());
     Ok(json!({ "user": user }))
@@ -643,7 +643,7 @@ pub async fn api_me(state: State<'_, Api>) -> Result<Value, String> {
     let token = state.session.token(&origin);
     let me = edge(&origin, "GET", "/api/account/me", None, token.as_deref()).await?;
     if base() != origin {
-        return Err("读取账号期间线路已变化".into());
+        return Err("계정을 읽는 중 서버가 변경되었습니다".into());
     }
     if let Some(token) = state.session.token(&origin) {
         state.session.set(&origin, token, me.clone());

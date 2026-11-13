@@ -40,7 +40,7 @@ fn parse_items(html: &str) -> Result<Vec<HotVideo>, String> {
     let document = Document::from(html);
     let sections = document.select("section.hg-search-hot");
     if sections.is_empty() {
-        return Err("官网搜索页没有找到热搜榜区域".into());
+        return Err("공식 사이트 검색 페이지에서 인기 검색 영역을 찾지 못했습니다".into());
     }
 
     let mut seen = HashSet::new();
@@ -85,7 +85,7 @@ fn parse_items(html: &str) -> Result<Vec<HotVideo>, String> {
     }
 
     if items.is_empty() {
-        Err("官网热搜榜没有可用条目".into())
+        Err("공식 사이트 인기 검색 순위에 사용 가능한 항목이 없습니다".into())
     } else {
         Ok(items)
     }
@@ -118,34 +118,34 @@ async fn fetch_html() -> Result<String, String> {
         .await?;
 
         if !response.status().is_success() {
-            return Err(format!("官网搜索页请求失败（HTTP {}）", response.status()));
+            return Err(format!("공식 사이트 검색 페이지 요청 실패 (HTTP {})", response.status()));
         }
         if response
             .content_length()
             .is_some_and(|length| length > MAX_HTML_BYTES as u64)
         {
-            return Err("官网搜索页超过 2 MiB 限制".into());
+            return Err("공식 사이트 검색 페이지가 2 MiB 제한을 초과했습니다".into());
         }
 
         let mut html = Vec::with_capacity(response.content_length().unwrap_or(0) as usize);
         while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
             if html.len().saturating_add(chunk.len()) > MAX_HTML_BYTES {
-                return Err("官网搜索页超过 2 MiB 限制".into());
+                return Err("공식 사이트 검색 페이지가 2 MiB 제한을 초과했습니다".into());
             }
             html.extend_from_slice(&chunk);
         }
-        String::from_utf8(html).map_err(|_| "官网搜索页不是有效的 UTF-8 HTML".into())
+        String::from_utf8(html).map_err(|_| "공식 사이트 검색 페이지가 올바른 UTF-8 HTML이 아닙니다".into())
     })
     .await
-    .map_err(|_| "获取官网热搜超时（12 秒）".to_string())?
+    .map_err(|_| "공식 사이트 인기 검색 요청 시간 초과 (12초)".to_string())?
 }
 
 pub async fn fetch() -> Result<Value, String> {
     let html = fetch_html()
         .await
-        .map_err(|error| format!("获取官网热搜失败：{error}"))?;
+        .map_err(|error| format!("공식 사이트 인기 검색 요청 실패: {error}"))?;
     let items =
-        parse_items(&html).map_err(|error| format!("获取官网热搜失败：{error}"))?;
+        parse_items(&html).map_err(|error| format!("공식 사이트 인기 검색 요청 실패: {error}"))?;
     Ok(json!({ "items": items }))
 }
 
@@ -209,17 +209,17 @@ mod tests {
         let outside = r#"<a class="hg-search-hot__item" href="/video/1/">
             <span class="hg-search-hot__name">外部</span><span class="hg-search-hot__plays">2w</span>
         </a>"#;
-        assert_eq!(parse_items(outside).unwrap_err(), "官网搜索页没有找到热搜榜区域");
+        assert_eq!(parse_items(outside).unwrap_err(), "공식 사이트 검색 페이지에서 인기 검색 영역을 찾지 못했습니다");
 
         let invalid = r#"<section class="hg-search-hot">
             <a class="hg-search-hot__item" href="https://evil.example/video/1/" data-search-hot="外域">
               <span class="hg-search-hot__plays">2w</span>
             </a>
         </section>"#;
-        assert_eq!(parse_items(invalid).unwrap_err(), "官网热搜榜没有可用条目");
+        assert_eq!(parse_items(invalid).unwrap_err(), "공식 사이트 인기 검색 순위에 사용 가능한 항목이 없습니다");
         assert_eq!(
             parse_items("<section class=\"hg-search-hot\"></section>").unwrap_err(),
-            "官网热搜榜没有可用条目"
+            "공식 사이트 인기 검색 순위에 사용 가능한 항목이 없습니다"
         );
     }
 }

@@ -53,7 +53,7 @@ export default function Home({ active, bottomInset }: { active: boolean; bottomI
       retryAt.current = 0;
       if (!list.length || (res?.pagination && p >= res.pagination.pages)) setDone(true);
     } catch (e) {
-      const message = (e as Error).message || "加载失败";
+      const message = (e as Error).message || "불러오기 실패";
       const stale = requestEpoch !== lineEpochRef.current;
       if (!stale) {
         setError(message);
@@ -94,10 +94,10 @@ export default function Home({ active, bottomInset }: { active: boolean; bottomI
           onNearEnd={() => { if (!loading && !done && Date.now() >= retryAt.current) load(page + 1); }} />
       ) : !loading && error ? (
         <div className="absolute inset-0 flex items-center justify-center bg-bg">
-          <Empty icon={<ISearch size={26} />} title="首页加载失败" sub={error} action="重试" onAction={() => void load(1)} />
+          <Empty icon={<ISearch size={26} />} title="홈을 불러오지 못했습니다" sub={error} action="다시 시도" onAction={() => void load(1)} />
         </div>
       ) : !loading && done ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-bg"><Empty icon={<ISearch size={26} />} title="暂无视频" /></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-bg"><Empty icon={<ISearch size={26} />} title="영상이 없습니다" /></div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center"><Loader className="w-9 h-9 spinner" /></div>
       )}

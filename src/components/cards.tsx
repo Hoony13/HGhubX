@@ -5,7 +5,7 @@ import { Img } from "./ui";
 import { Button } from "./ios/controls";
 
 function ScoreBadge({ score }: { score: number }) {
-  return Number.isFinite(score) && score > 0 ? <span className="ios-score-badge" aria-label={`评分 ${score.toFixed(1)}`}>
+  return Number.isFinite(score) && score > 0 ? <span className="ios-score-badge" aria-label={`평점 ${score.toFixed(1)}`}>
     <IStarF size={12} />{score.toFixed(1)}
   </span> : null;
 }
@@ -28,9 +28,9 @@ export function MediaCard({ title, cover, subtitle, badge, progress, score, prio
 
 export function WaterfallCard({ v, onOpen, priority = false }: { v: VideoCard; onOpen: () => void; priority?: boolean }) {
   return <MediaCard title={v.title} cover={v.cover} onOpen={onOpen} priority={priority} score={v.score}
-    badge={v.is_finished ? "已完结" : `更新至 ${v.episode_count} 集`}
+    badge={v.is_finished ? "완결" : `공개: ${v.episode_count}화`}
     subtitle={v.tags?.slice(0, 2).join(" · ") || v.author?.name || "HGhubX"}
-    progress={`${fmt(v.hot)} 次播放`} />;
+    progress={`${fmt(v.hot)}회 재생`} />;
 }
 
 export function Masonry({ videos, onOpen, wide = false }: {
@@ -43,8 +43,8 @@ export function Masonry({ videos, onOpen, wide = false }: {
 
 export function RowCard({ v, onOpen }: { v: VideoCard; onOpen: () => void }) {
   return <div className="ios-row-card"><MediaCard title={v.title} cover={v.cover} score={v.score} onOpen={onOpen}
-    badge={v.is_finished ? "完结" : `${v.episode_count} 集`}
-    subtitle={v.score ? `${v.score.toFixed(1)} 分 · ${v.tags?.[0] || "短剧"}` : v.tags?.slice(0, 2).join(" · ")} />
+    badge={v.is_finished ? "완결" : `${v.episode_count}화`}
+    subtitle={v.score ? `${v.score.toFixed(1)}점 · ${v.tags?.[0] || "숏드라마"}` : v.tags?.slice(0, 2).join(" · ")} />
   </div>;
 }
 

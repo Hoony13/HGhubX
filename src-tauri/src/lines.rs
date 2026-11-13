@@ -8,8 +8,8 @@ use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 pub const FIXED: [(&str, &str); 2] = [
-    ("固定线路 1", "https://huangguoai.com"),
-    ("固定线路 2", "https://huangguoai.ai"),
+    ("고정 서버 1", "https://huangguoai.com"),
+    ("고정 서버 2", "https://huangguoai.ai"),
 ];
 const PUBLISH_PAGES: [&str; 2] = [
     "https://huangguoai.pages.dev/",
@@ -110,7 +110,7 @@ fn merge_publishers(
     }
     if items.is_empty() {
         return Err(if errors.is_empty() {
-            "地址发布页里没有可用的镜像地址".into()
+            "주소 안내 페이지에 사용 가능한 미러 주소가 없습니다".into()
         } else {
             errors.join("；")
         });
@@ -158,14 +158,14 @@ async fn mirrors_from_page(page: &str) -> Result<PublishedPage, String> {
         })
     })
     .await
-    .map_err(|_| "获取地址发布页超时（8 秒）".to_owned())?
+    .map_err(|_| "주소 안내 페이지 요청 시간 초과 (8초)".to_owned())?
 }
 
 fn parse_mirrors(js: &str) -> Result<Vec<Value>, String> {
     let domains = js_array(js, "urls")?.unwrap_or_default();
     let subs = js_array(js, "subdomains")?.unwrap_or_default();
     if domains.is_empty() {
-        return Err("发布脚本中没有找到镜像域名".into());
+        return Err("주소 안내 스크립트에서 미러 도메인을 찾지 못했습니다".into());
     }
     let mut items = Vec::new();
     let mut seen = HashSet::new();
@@ -198,7 +198,7 @@ fn parse_mirrors(js: &str) -> Result<Vec<Value>, String> {
         }
     }
     if items.is_empty() {
-        Err("发布脚本中没有合法镜像地址".into())
+        Err("주소 안내 스크립트에 유효한 미러 주소가 없습니다".into())
     } else {
         Ok(items)
     }
@@ -228,7 +228,7 @@ fn valid_dns_name(value: &str) -> bool {
 
 /// Bounded decoded body; the publisher's outer deadline also covers a slow body.
 async fn get_text(raw: &str) -> Result<String, String> {
-    let target = url::Url::parse(raw).map_err(|_| "发布地址无效")?;
+    let target = url::Url::parse(raw).map_err(|_| "안내 주소가 올바르지 않습니다")?;
     let mut response = crate::net::get(
         raw,
         PAGE_TIMEOUT,
@@ -242,7 +242,7 @@ async fn get_text(raw: &str) -> Result<String, String> {
         || final_url.origin() != target.origin()
         || (target.path().ends_with("/publish.js") && final_url.path() != target.path())
     {
-        return Err("发布页或发布脚本跳转到了非可信地址".into());
+        return Err("안내 페이지 또는 스크립트가 신뢰할 수 없는 주소로 이동했습니다".into());
     }
     if !response.status().is_success() {
         return Err(format!("HTTP {}", response.status()));
@@ -251,7 +251,7 @@ async fn get_text(raw: &str) -> Result<String, String> {
         .content_length()
         .is_some_and(|length| length > MAX_PUBLISH_BYTES as u64)
     {
-        return Err("地址发布页或脚本超过 512 KiB 限制".into());
+        return Err("주소 안내 페이지 또는 스크립트가 512 KiB 제한을 초과했습니다".into());
     }
     let mut bytes = Vec::new();
     while let Some(chunk) = response
@@ -260,11 +260,11 @@ async fn get_text(raw: &str) -> Result<String, String> {
         .map_err(|error| crate::net::err_text(&error))?
     {
         if bytes.len().saturating_add(chunk.len()) > MAX_PUBLISH_BYTES {
-            return Err("地址发布页或脚本超过 512 KiB 限制".into());
+            return Err("주소 안내 페이지 또는 스크립트가 512 KiB 제한을 초과했습니다".into());
         }
         bytes.extend_from_slice(&chunk);
     }
-    String::from_utf8(bytes).map_err(|_| "地址发布页或脚本不是有效 UTF-8".into())
+    String::from_utf8(bytes).map_err(|_| "주소 안내 페이지 또는 스크립트가 올바른 UTF-8이 아닙니다".into())
 }
 
 fn script_src(page: &str, html: &str) -> Result<String, String> {
@@ -276,15 +276,15 @@ fn script_src(page: &str, html: &str) -> Result<String, String> {
             }
         }
     }
-    Err("地址发布页没有同源 publish.js 脚本".into())
+    Err("주소 안내 페이지에 동일 출처의 publish.js 스크립트가 없습니다".into())
 }
 
 fn absolute(base: &str, relative: &str) -> Result<String, String> {
     if relative.chars().any(char::is_control) {
-        return Err("发布脚本地址含控制字符".into());
+        return Err("주소 안내 스크립트 주소에 제어 문자가 포함되어 있습니다".into());
     }
-    let base = url::Url::parse(base).map_err(|_| "发布页地址无效")?;
-    let target = base.join(relative.trim()).map_err(|_| "发布脚本地址无效")?;
+    let base = url::Url::parse(base).map_err(|_| "주소 안내 페이지 주소가 올바르지 않습니다")?;
+    let target = base.join(relative.trim()).map_err(|_| "주소 안내 스크립트 주소가 올바르지 않습니다")?;
     if base.scheme() != "https"
         || target.scheme() != "https"
         || target.origin() != base.origin()
@@ -293,7 +293,7 @@ fn absolute(base: &str, relative: &str) -> Result<String, String> {
         || target.fragment().is_some()
         || target.path().rsplit('/').next() != Some("publish.js")
     {
-        return Err("只接受发布页同源的 HTTPS publish.js".into());
+        return Err("안내 페이지와 동일 출처인 HTTPS publish.js만 허용합니다".into());
     }
     Ok(target.to_string())
 }
@@ -301,7 +301,7 @@ fn absolute(base: &str, relative: &str) -> Result<String, String> {
 /// Persisted lines gain credential trust only after a publisher confirms them.
 /// Anonymous probes must not call this function.
 pub async fn verify_published_origin(origin: &str) -> Result<(), String> {
-    let origin = crate::net::normalize_base(origin).ok_or("线路必须是安全 HTTPS origin")?;
+    let origin = crate::net::normalize_base(origin).ok_or("서버는 안전한 HTTPS 기본 주소여야 합니다")?;
     if is_fixed(&origin) || is_trusted_mirror(&origin) {
         return Ok(());
     }
@@ -329,11 +329,11 @@ pub async fn verify_published_origin(origin: &str) -> Result<(), String> {
         if is_trusted_mirror(&origin) {
             Ok(())
         } else {
-            Err("当前镜像未被可信地址发布页收录；请重新选择线路后登录".into())
+            Err("현재 미러가 신뢰할 수 있는 주소 안내 페이지에 없습니다. 서버를 다시 선택한 뒤 로그인해 주세요".into())
         }
     })
     .await
-    .map_err(|_| "验证镜像发布来源超时".to_owned())?
+    .map_err(|_| "미러 주소의 공개 출처 확인 시간 초과".to_owned())?
 }
 
 #[derive(Debug, PartialEq)]
@@ -366,7 +366,7 @@ fn js_tokens(source: &str) -> Result<Vec<JsToken<'_>>, String> {
         if bytes[at..].starts_with(b"/*") {
             at += 2;
             let Some(end) = source[at..].find("*/") else {
-                return Err("发布脚本注释未闭合".into());
+                return Err("주소 안내 스크립트의 주석이 닫히지 않았습니다".into());
             };
             at += end + 2;
             continue;
@@ -381,7 +381,7 @@ fn js_tokens(source: &str) -> Result<Vec<JsToken<'_>>, String> {
                 at += 1;
             }
             if at >= bytes.len() {
-                return Err("发布脚本字符串未闭合".into());
+                return Err("주소 안내 스크립트의 문자열이 닫히지 않았습니다".into());
             }
             at += 1;
             out.push(if byte == 96 {
@@ -405,13 +405,13 @@ fn js_tokens(source: &str) -> Result<Vec<JsToken<'_>>, String> {
                     b'[' => in_class = true,
                     b']' => in_class = false,
                     b'/' if !in_class => break,
-                    10 | 13 => return Err("发布脚本包含不支持的表达式".into()),
+                    10 | 13 => return Err("주소 안내 스크립트에 지원하지 않는 표현식이 있습니다".into()),
                     _ => {}
                 }
                 at += 1;
             }
             if at >= bytes.len() {
-                return Err("发布脚本表达式未闭合".into());
+                return Err("주소 안내 스크립트의 표현식이 닫히지 않았습니다".into());
             }
             at += 1;
             while at < bytes.len() && bytes[at].is_ascii_alphabetic() {
@@ -443,7 +443,7 @@ fn js_string(raw: &str) -> Result<String, String> {
     while let Some(ch) = chars.next() {
         if ch != char::from(92) {
             if ch.is_control() {
-                return Err("镜像字符串含控制字符".into());
+                return Err("미러 문자열에 제어 문자가 포함되어 있습니다".into());
             }
             result.push(ch);
             continue;
@@ -455,7 +455,7 @@ fn js_string(raw: &str) -> Result<String, String> {
                 let byte = u8::from_str_radix(&code, 16)
                     .ok()
                     .filter(|_| code.len() == 2)
-                    .ok_or("镜像字符串转义无效")?;
+                    .ok_or("미러 문자열의 이스케이프가 올바르지 않습니다")?;
                 result.push(char::from(byte));
             }
             Some('u') => {
@@ -463,10 +463,10 @@ fn js_string(raw: &str) -> Result<String, String> {
                 let number = u32::from_str_radix(&code, 16)
                     .ok()
                     .filter(|_| code.len() == 4)
-                    .ok_or("镜像字符串转义无效")?;
-                result.push(char::from_u32(number).ok_or("镜像字符串转义无效")?);
+                    .ok_or("미러 문자열의 이스케이프가 올바르지 않습니다")?;
+                result.push(char::from_u32(number).ok_or("미러 문자열의 이스케이프가 올바르지 않습니다")?);
             }
-            _ => return Err("镜像字符串含不支持的转义".into()),
+            _ => return Err("미러 문자열에 지원하지 않는 이스케이프가 있습니다".into()),
         }
     }
     Ok(result)
@@ -482,18 +482,18 @@ fn js_array(source: &str, name: &str) -> Result<Option<Vec<String>>, String> {
         let declaration = matches!(token, JsToken::Ident("var" | "let" | "const"));
         if depth == 0 && declaration && tokens.get(at + 1) == Some(&JsToken::Ident(name)) {
             if result.is_some() {
-                return Err(format!("发布脚本重复声明 {name}"));
+                return Err(format!("주소 안내 스크립트에서 {name}을 중복 선언했습니다"));
             }
             if tokens.get(at + 2) != Some(&JsToken::Symbol(b'='))
                 || tokens.get(at + 3) != Some(&JsToken::Symbol(b'['))
             {
-                return Err(format!("发布脚本的 {name} 必须是字符串数组"));
+                return Err(format!("주소 안내 스크립트의 {name}은 문자열 배열이어야 합니다"));
             }
             let mut cursor = at + 4;
             let mut values = Vec::new();
             while tokens.get(cursor) != Some(&JsToken::Symbol(b']')) {
                 let Some(JsToken::Quoted(raw)) = tokens.get(cursor) else {
-                    return Err(format!("发布脚本的 {name} 含非字符串值"));
+                    return Err(format!("주소 안내 스크립트의 {name}에 문자열이 아닌 값이 있습니다"));
                 };
                 if values.len() >= PUBLISH_ARRAY_MAX {
                     return Err(format!("{name} exceeds the publisher array size limit"));
@@ -503,11 +503,11 @@ fn js_array(source: &str, name: &str) -> Result<Option<Vec<String>>, String> {
                 match tokens.get(cursor) {
                     Some(JsToken::Symbol(b',')) => cursor += 1,
                     Some(JsToken::Symbol(b']')) => {}
-                    _ => return Err(format!("发布脚本的 {name} 数组格式无效")),
+                    _ => return Err(format!("주소 안내 스크립트의 {name} 배열 형식이 올바르지 않습니다")),
                 }
             }
             if !matches!(tokens.get(cursor + 1), None | Some(JsToken::Symbol(b';'))) {
-                return Err(format!("发布脚本的 {name} 不能使用动态表达式"));
+                return Err(format!("주소 안내 스크립트의 {name}에는 동적 표현식을 사용할 수 없습니다"));
             }
             result = Some(values);
         }
@@ -581,7 +581,7 @@ async fn probe_hit(tier: &'static str, raw: &str) -> Hit {
         error: None,
     };
     let Some(origin) = crate::net::normalize_base(raw) else {
-        hit.error = Some("线路必须是安全 HTTPS origin".into());
+        hit.error = Some("서버는 안전한 HTTPS 기본 주소여야 합니다".into());
         return hit;
     };
     hit.url = origin.clone();
@@ -599,14 +599,14 @@ async fn probe_hit(tier: &'static str, raw: &str) -> Hit {
             hit.status = Some(200);
             hit.ok = healthy_video_data(&data);
             if !hit.ok {
-                hit.error = Some("接口未返回有效视频列表数据".into());
+                hit.error = Some("API가 유효한 영상 목록을 반환하지 않았습니다".into());
             }
         }
         Ok(Err(error)) => {
             hit.error = Some(error);
         }
         Err(_) => {
-            hit.error = Some("视频接口探测超时（5 秒）".into());
+            hit.error = Some("영상 API 검사 시간 초과 (5초)".into());
         }
     }
     hit.ms = started.elapsed().as_millis() as u64;

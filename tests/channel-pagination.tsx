@@ -72,7 +72,7 @@ Object.assign(window, {
 createRoot(document.querySelector("#root")!).render(
   <AppProvider>
     <div style={{ position: "relative", width: 390, height: 844 }}>
-      <ChannelPage cate="ai-duanju" name="AI成人短剧" onBack={() => {}} wide={false} />
+      <ChannelPage cate="ai-duanju" name="AI 성인 숏드라마" onBack={() => {}} wide={false} />
     </div>
   </AppProvider>,
 );

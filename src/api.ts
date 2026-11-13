@@ -55,7 +55,7 @@ export const playlist = (url: string) => `${LOCAL}/hls?u=${encodeURIComponent(ur
 export const logLine = (msg: string) => invoke("debug_log", { msg }).catch(() => {});
 
 /** 网络类失败的样子：没有 HTTP 状态码，纯链路层（DNS / 连接 / 超时 / TLS） */
-const NET_FAIL = /dns|timed? ?out|timeout|connection|refused|reset|unreachable|broken pipe|tls|ssl|handshake|证书|网络|连接/i;
+const NET_FAIL = /dns|timed? ?out|timeout|connection|refused|reset|unreachable|broken pipe|tls|ssl|handshake|证书|网络|连接|인증서|네트워크|연결|시간 초과/i;
 /** 只读命令：链路抖动时可以安全重试一次；写操作绝不重试（避免重复提交） */
 const READ_ONLY = new Set([
   "api_me", "api_feed", "api_original_videos", "api_category", "api_rank", "api_search",
@@ -70,10 +70,13 @@ export const setNetObserver = (fn: NetObserver | null) => { netObserver = fn; };
 const notifyNet = (r: Parameters<NetObserver>[0]) => {
   try { netObserver?.(r); } catch { /* 观察者不能影响请求本身 */ }
 };
-const failMessage = (msg: string, status?: string) =>
-  status
-    ? `服务器请求失败（HTTP ${status}），请稍后重试或在设置中切换线路`
-    : msg.length > 140 ? `${msg.slice(0, 140)}…` : msg;
+const failMessage = (msg: string, status?: string) => {
+  if (status) return `서버 요청 실패 (HTTP ${status}). 잠시 후 다시 시도하거나 설정에서 서버를 변경해 주세요`;
+  // Upstream errors are logged verbatim above; keep the visible fallback Korean.
+  if (msg === "账号或密码不正确") return "아이디 또는 비밀번호가 올바르지 않습니다";
+  if (/\p{Script=Han}/u.test(msg)) return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요";
+  return msg.length > 140 ? `${msg.slice(0, 140)}…` : msg;
+};
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const once = () => invoke(cmd, args) as Promise<T>;
@@ -82,7 +85,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
     notifyNet({ ok: true, cmd });
     return r;
   } catch (e) {
-    const msg = typeof e === "string" ? e : "请求失败，请检查网络";
+    const msg = typeof e === "string" ? e : "요청에 실패했습니다. 네트워크를 확인해 주세요";
     const status = /^HTTP (\d{3})\b/.exec(msg)?.[1];
     const networkish = !status && NET_FAIL.test(msg);
     // 落盘完整错误链（dns error / connection refused / 证书错误…），toast 只显示截断版
@@ -91,19 +94,19 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
     notifyNet({ ok: false, cmd, msg, networkish });
     // 线路可能正被自动切走：给切换留一点时间，只读请求重试一次，用户就不用看见这条错误
     if (networkish && READ_ONLY.has(cmd)) {
-      logLine(`[api] ${cmd} 链路异常，1.2s 后重试一次`);
+      logLine(`[api] ${cmd} 연결 오류, 1.2초 후 한 번 재시도`);
       tracePlayback("api.retry", { cmd, err: msg });
       await new Promise((r) => setTimeout(r, 1200));
       try {
         const r = await once();
-        logLine(`[api] ${cmd} 重试成功`);
+        logLine(`[api] ${cmd} 재시도 성공`);
         tracePlayback("api.retry_ok", { cmd });
         notifyNet({ ok: true, cmd });
         return r;
       } catch (e2) {
         const again = typeof e2 === "string" ? e2 : msg;
         const againStatus = /^HTTP (\d{3})\b/.exec(again)?.[1];
-        logLine(`[api] ${cmd} 重试仍失败 → ${again}`);
+        logLine(`[api] ${cmd} 재시도 실패 → ${again}`);
         tracePlayback("api.retry_failed", { cmd, err: again, status: againStatus ?? null });
         throw new Error(failMessage(again, againStatus));
       }
@@ -331,8 +334,8 @@ export async function selfTest(): Promise<string> {
 
 export const fmt = (n: number | undefined) => {
   const v = Number(n) || 0;
-  if (v >= 100_000_000) return `${(v / 100_000_000).toFixed(1).replace(/\.0$/, "")}亿`;
-  if (v >= 10_000) return `${(v / 10_000).toFixed(1).replace(/\.0$/, "")}万`;
+  if (v >= 100_000_000) return `${(v / 100_000_000).toFixed(1).replace(/\.0$/, "")}억`;
+  if (v >= 10_000) return `${(v / 10_000).toFixed(1).replace(/\.0$/, "")}만`;
   return String(v);
 };
 

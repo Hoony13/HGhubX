@@ -95,7 +95,7 @@ async function checkIdleSeekTarget() {
   const deadline = performance.now() + 20000;
   while (performance.now() < deadline) {
     const video = document.querySelector("video");
-    const input = document.querySelector<HTMLInputElement>('input[aria-label="播放进度"]');
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="재생 위치"]');
     if (video && input && video.currentTime > 0 && document.querySelector(".player-root.is-idle")) {
       const rect = input.getBoundingClientRect();
       if (document.elementFromPoint(rect.x + rect.width * .8, rect.y + rect.height / 2) !== input) {

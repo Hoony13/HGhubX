@@ -49,9 +49,9 @@ pub(crate) struct Resolution {
 
 fn answers(value: &Value, port: u16) -> Result<Resolution, String> {
     if value["Status"].as_u64() != Some(0) {
-        return Err("备用 DNS 解析失败".into());
+        return Err("보조 DNS 조회 실패".into());
     }
-    let records = value["Answer"].as_array().ok_or("备用 DNS 没有可用地址")?;
+    let records = value["Answer"].as_array().ok_or("보조 DNS에 사용 가능한 주소가 없습니다")?;
     let mut addresses = Vec::new();
     let mut ttl = 30;
     for record in records {
@@ -61,21 +61,21 @@ fn answers(value: &Value, port: u16) -> Result<Resolution, String> {
         }
         let ip: Ipv4Addr = record["data"]
             .as_str()
-            .ok_or("备用 DNS 地址无效")?
+            .ok_or("보조 DNS 주소가 올바르지 않습니다")?
             .parse()
-            .map_err(|_| "备用 DNS 地址无效")?;
+            .map_err(|_| "보조 DNS 주소가 올바르지 않습니다")?;
         let [first, second, _, _] = ip.octets();
         if !network_policy::allowed_ip(ip.into())
             || (first == 198 && (second == 18 || second == 19))
         {
-            return Err("备用 DNS 返回内网或保留地址".into());
+            return Err("보조 DNS가 내부망 또는 예약 주소를 반환했습니다".into());
         }
         addresses.push(SocketAddr::new(ip.into(), port));
     }
     addresses.sort_unstable();
     addresses.dedup();
     if addresses.is_empty() || addresses.len() > 32 {
-        return Err("备用 DNS 没有可用地址".into());
+        return Err("보조 DNS에 사용 가능한 주소가 없습니다".into());
     }
     Ok(Resolution {
         addresses,
@@ -94,17 +94,17 @@ pub(crate) async fn resolve(
         .timeout(Duration::from_secs(4))
         .send()
         .await
-        .map_err(|_| "备用 DNS 请求失败")?
+        .map_err(|_| "보조 DNS 요청 실패")?
         .error_for_status()
-        .map_err(|_| "备用 DNS 服务不可用")?;
+        .map_err(|_| "보조 DNS 서비스를 사용할 수 없습니다")?;
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|_| "备用 DNS 响应失败")? {
+    while let Some(chunk) = response.chunk().await.map_err(|_| "보조 DNS 응답 실패")? {
         if bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
-            return Err("备用 DNS 响应过大".into());
+            return Err("보조 DNS 응답이 너무 큽니다".into());
         }
         bytes.extend_from_slice(&chunk);
     }
-    let value: Value = serde_json::from_slice(&bytes).map_err(|_| "备用 DNS 响应无效")?;
+    let value: Value = serde_json::from_slice(&bytes).map_err(|_| "보조 DNS 응답이 올바르지 않습니다")?;
     answers(&value, port)
 }
 
@@ -155,8 +155,8 @@ mod tests {
     fn recovery_only_applies_to_https_domains_and_connection_failures() {
         let url = url::Url::parse("https://media.example/list.m3u8?auth_key=secret").unwrap();
         for error in [
-            "DNS 解析失败",
-            "请求超时",
+            "DNS 조회 실패",
+            "요청 시간 초과",
             "client error (Connect) ← operation timed out",
             "tls handshake eof",
         ] {
@@ -166,8 +166,8 @@ mod tests {
             "HTTP 403 Forbidden",
             "HTTP 404 Not Found",
             "HTTP 503 Service Unavailable",
-            "禁止访问内网",
-            "禁止 HTTPS 降级重定向",
+            "내부망 접근 금지",
+            "HTTPS 다운그레이드 리디렉션 금지",
         ] {
             assert!(!eligible(&url, error), "{error}");
         }
@@ -176,7 +176,7 @@ mod tests {
             "https://127.0.0.1/video",
             "https://[::1]/video",
         ] {
-            assert!(!eligible(&url::Url::parse(raw).unwrap(), "请求超时"));
+            assert!(!eligible(&url::Url::parse(raw).unwrap(), "요청 시간 초과"));
         }
     }
 

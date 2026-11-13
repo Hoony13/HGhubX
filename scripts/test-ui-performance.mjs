@@ -16,13 +16,13 @@ try {
  await page.addInitScript(installFixture,{theme:'light',titles:['城市与晚风','重逢在夏日以后','星河旅人','无声的答案','我的奇妙假期','晴天来信']});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect width="300" height="400" fill="#789"/></svg>'}));
  await page.goto(server.resolvedUrls.local[0]);
- await page.getByRole('navigation',{name:'主导航'}).waitFor();
+ await page.getByRole('navigation',{name:'주 메뉴'}).waitFor();
  const cdp=await page.context().newCDPSession(page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
  const samples=[];
  for(let i=0;i<18;i++) {
-  const label=['搜索','分类','我的'][i%3];
+  const label=['검색','카테고리','마이페이지'][i%3];
   samples.push(await page.evaluate(async label=>{
-   const button=[...document.querySelectorAll('nav[aria-label="主导航"] button')].find(b=>b.textContent===label);
+   const button=[...document.querySelectorAll('nav[aria-label="주 메뉴"] button')].find(b=>b.textContent===label);
    const start=performance.now();button.click();
    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
    return {label,ms:Math.round((performance.now()-start)*10)/10,committed:button.getAttribute('aria-current')==='page'};

@@ -272,7 +272,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setStrictSecurity = useCallback(async (on: boolean) => {
-    if (!strictSecurityReady) throw new Error("安全设置尚未读取，请重新启动应用");
+    if (!strictSecurityReady) throw new Error("보안 설정을 읽지 못했습니다. 앱을 다시 시작해 주세요");
     setSecurityPending(true);
     try {
       const saved = await api.securitySet(on);
@@ -313,7 +313,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (now - last < 60_000) return;
       last = now;
       const id = ++toastSeq.current;
-      setToasts((t) => [...t.slice(-2), { id, msg: "线路全部不可用，请检查网络或代理", icon: "info" }]);
+      setToasts((t) => [...t.slice(-2), { id, msg: "사용 가능한 서버가 없습니다. 네트워크나 프록시를 확인해 주세요", icon: "info" }]);
       window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3600);
     };
     window.addEventListener("hg:line-down", onDown);
@@ -390,7 +390,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try { await api.logout(); } catch { /* ignore */ }
     setUser(null);
-    toast("已退出登录", "info");
+    toast("로그아웃했습니다", "info");
   }, [toast]);
 
   const setTheater = useCallback((v: boolean | ((prev: boolean) => boolean)) => {

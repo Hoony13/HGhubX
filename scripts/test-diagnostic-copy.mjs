@@ -60,9 +60,9 @@ try {
   });
   const load = async () => {
     await page.goto(`${origin}tests/diagnostic-copy.html`);
-    await page.waitForFunction(() => !document.querySelector('[aria-label="播放诊断日志"]').disabled);
+    await page.waitForFunction(() => !document.querySelector('[aria-label="재생 진단 로그"]').disabled);
   };
-  const networkButton = () => page.getByRole("button").filter({ has: page.getByText("网络诊断", { exact: true }) });
+  const networkButton = () => page.getByRole("button").filter({ has: page.getByText("네트워크 진단", { exact: true }) });
 
   await load();
   await page.evaluate(() => { window.diagnosticCopyFixture.delay = 5500; });
@@ -70,38 +70,38 @@ try {
   await page.waitForFunction(() => window.diagnosticCopyFixture.nativeCopies.length === 1);
   const first = await page.evaluate(() => window.diagnosticCopyFixture);
   assert.equal(first.webCopies, 0);
-  assert(first.nativeCopies[0].includes("【HGhubX 网络诊断】") && first.nativeCopies[0].includes('"status": 200'));
-  assert(first.nativeCopies[0].includes("直连探测（绕过应用 HTTP 代理） · IPv6 · 超时"));
-  assert(first.nativeCopies[0].includes("检测到匹配的应用 HTTP 代理配置"));
-  assert(first.nativeCopies[0].includes("── 应用代理") && first.nativeCopies[0].includes("自定义代理"));
-  await page.getByText(/诊断已复制/).waitFor();
+  assert(first.nativeCopies[0].includes("【HGhubX 네트워크 진단】") && first.nativeCopies[0].includes('"status": 200'));
+  assert(first.nativeCopies[0].includes("직접 연결 검사 (앱 HTTP 프록시 우회) · IPv6 · 시간 초과"));
+  assert(first.nativeCopies[0].includes("일치하는 앱 HTTP 프록시 설정 감지됨"));
+  assert(first.nativeCopies[0].includes("── 앱 프록시") && first.nativeCopies[0].includes("사용자 지정 프록시"));
+  await page.getByText(/진단 결과 복사 완료/).waitFor();
   report.passed.push("After 5.5 seconds of async diagnostics, copy the complete report through native IPC while web clipboard writes reject");
 
   await load();
   await page.evaluate(() => { window.diagnosticCopyFixture.failCopy = true; });
   await networkButton().click();
-  const saved = page.getByRole("textbox", { name: "网络诊断报告" });
+  const saved = page.getByRole("textbox", { name: "네트워크 진단 보고서" });
   await saved.waitFor();
   assert((await saved.inputValue()).includes("应用 HTTP 请求已成功"));
-  assert.equal(await page.getByText(/网络诊断失败：/).count(), 0);
+  assert.equal(await page.getByText(/네트워크 진단 실패: /).count(), 0);
   await page.screenshot({ path: join(output, "report-fallback.png"), fullPage: true, animations: "disabled" });
   await page.evaluate(() => { window.diagnosticCopyFixture.failCopy = false; });
-  await page.getByRole("button", { name: "复制报告", exact: true }).click();
+  await page.getByRole("button", { name: "보고서 복사", exact: true }).click();
   await page.waitForFunction(() => window.diagnosticCopyFixture.nativeCopies.length === 1);
   assert.equal(await page.evaluate(() => window.diagnosticCopyFixture.diagCalls), 1);
-  await page.getByText("网络诊断报告已复制", { exact: true }).waitFor();
+  await page.getByText("네트워크 진단 보고서를 복사했습니다", { exact: true }).waitFor();
   report.passed.push("Clipboard failure retains the report; retry copies it without running diagnostics again");
 
   await load();
   await page.evaluate(() => { window.diagnosticCopyFixture.failDiag = true; });
   await networkButton().click();
-  await page.getByText("网络诊断失败：fixture: diagnostic unavailable", { exact: true }).waitFor();
+  await page.getByText("네트워크 진단 실패: fixture: diagnostic unavailable", { exact: true }).waitFor();
   assert.equal(await page.evaluate(() => window.diagnosticCopyFixture.nativeCopies.length), 0);
-  assert.equal(await page.getByRole("textbox", { name: "网络诊断报告" }).count(), 0);
+  assert.equal(await page.getByRole("textbox", { name: "네트워크 진단 보고서" }).count(), 0);
   report.passed.push("Diagnostic failure is distinct from clipboard failure and never reports a successful copy");
 
   await load();
-  await page.getByRole("button").filter({ has: page.getByText("复制播放诊断日志", { exact: true }) }).click();
+  await page.getByRole("button").filter({ has: page.getByText("재생 진단 로그 복사", { exact: true }) }).click();
   await page.waitForFunction(() => window.diagnosticCopyFixture.nativeCopies.length === 1);
   assert.equal(await page.evaluate(() => window.diagnosticCopyFixture.nativeCopies[0]), '{"event":"fixture.playback","data":{"unicode":"诊断日志"}}\n');
   assert.equal(await page.evaluate(() => window.diagnosticCopyFixture.webCopies), 0);
@@ -110,17 +110,17 @@ try {
   for (const failure of ["emptyLog", "failRead"]) {
     await load();
     await page.evaluate(key => { window.diagnosticCopyFixture[key] = true; }, failure);
-    await page.getByRole("button").filter({ has: page.getByText("复制播放诊断日志", { exact: true }) }).click();
-    await page.getByText(failure === "emptyLog" ? "尚无诊断日志，请开启后复现问题" : "fixture: log unavailable", { exact: true }).waitFor();
+    await page.getByRole("button").filter({ has: page.getByText("재생 진단 로그 복사", { exact: true }) }).click();
+    await page.getByText(failure === "emptyLog" ? "진단 로그가 없습니다. 로그를 켠 뒤 문제를 재현해 주세요" : "fixture: log unavailable", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.diagnosticCopyFixture.nativeCopies.length), 0);
   }
   report.passed.push("Empty or unreadable logs are not copied");
 
   await load();
   await page.evaluate(() => { window.diagnosticCopyFixture.failCopy = true; });
-  await page.getByRole("button").filter({ has: page.getByText("复制播放诊断日志", { exact: true }) }).click();
-  await page.getByText("复制日志失败", { exact: true }).waitFor();
-  assert.equal(await page.getByText("播放诊断日志已复制", { exact: true }).count(), 0);
+  await page.getByRole("button").filter({ has: page.getByText("재생 진단 로그 복사", { exact: true }) }).click();
+  await page.getByText("로그 복사 실패", { exact: true }).waitFor();
+  assert.equal(await page.getByText("재생 진단 로그를 복사했습니다", { exact: true }).count(), 0);
   report.passed.push("Native playback log copy failure displays failure rather than a success message");
 
   await load();
@@ -132,7 +132,7 @@ try {
     try { await window.copyFixtureText("unavailable"); return "unexpected success"; }
     catch (error) { return error.message; }
   });
-  assert.equal(unsupported, "当前环境不支持复制，请在应用中重试");
+  assert.equal(unsupported, "현재 환경에서는 복사를 지원하지 않습니다. 앱에서 다시 시도해 주세요");
   report.passed.push("Native copy works without navigator.clipboard; browser-only absence rejects instead of claiming success");
 
   assert.deepEqual(errors, []);

@@ -75,7 +75,7 @@ async function waitLog(page, event, source) {
   return getLogs(page);
 }
 async function clickProgress(page, fraction) {
-  const input = page.getByRole("slider", { name: "播放进度" });
+  const input = page.getByRole("slider", { name: "재생 위치" });
   await input.scrollIntoViewIfNeeded();
   const r = await input.boundingBox(); assert(r, "Seekbar missing");
   await page.mouse.click(r.x + r.width * fraction, r.y + r.height / 2);
@@ -85,8 +85,8 @@ async function loadPlayer(page, legacy = false, extra = "") {
   await page.waitForFunction(() => document.querySelector("video")?.currentTime > 1);
 }
 async function speedMenuKeyboardChecks(page, paused) {
-  const trigger = page.getByRole("button", { name: "倍速", exact: true });
-  const menu = page.getByRole("menu", { name: "播放速度", exact: true });
+  const trigger = page.getByRole("button", { name: "배속", exact: true });
+  const menu = page.getByRole("menu", { name: "재생 속도", exact: true });
   const assertFocus = async selector => {
     await page.waitForFunction(selector => document.activeElement === document.querySelector(selector), selector);
   };
@@ -177,8 +177,8 @@ async function seekChecks(page, legacy) {
   await clickProgress(page, .1);
   assert.equal((await getLogs(page)).length, 0, "Default-off must not record seeks");
   await page.getByRole("button", { name: "诊断设置", exact: true }).click();
-  await page.getByRole("switch", { name: "播放诊断日志", exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('[aria-label="播放诊断日志"]').getAttribute("aria-checked") === "true");
+  await page.getByRole("switch", { name: "재생 진단 로그", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="재생 진단 로그"]').getAttribute("aria-checked") === "true");
   await page.getByRole("button", { name: "诊断设置", exact: true }).click();
   await clickProgress(page, .8);
   let logs = await waitLog(page, "seek.resumed");
@@ -188,7 +188,7 @@ async function seekChecks(page, legacy) {
   assert(logs.some(e => e.event === "seek.resumed" && e.data.seek === first.data.seek), "Click must recover a frame with matching seek ID");
 
   const before = logs.length;
-  const r = await page.getByRole("slider", { name: "播放进度" }).boundingBox();
+  const r = await page.getByRole("slider", { name: "재생 위치" }).boundingBox();
   const current = await page.locator("video").evaluate(v => v.currentTime / v.duration);
   await page.mouse.move(r.x + r.width * current, r.y + r.height / 2);
   await page.mouse.down();
@@ -199,7 +199,7 @@ async function seekChecks(page, legacy) {
   const duringDrag = (await getLogs(page)).slice(before);
   assert.equal(duringDrag.filter(e => e.event === "seek.request").length, 0, "Pointer movement must only preview, without seeking");
   assert(duringDrag.filter(e => e.event === "seek.input.change" && e.data.input === "drag").length > 1, "Drag must keep logging preview positions");
-  const preview = await page.getByRole("slider", { name: "播放进度" }).inputValue();
+  const preview = await page.getByRole("slider", { name: "재생 위치" }).inputValue();
   assert(Math.abs(Number(preview) - 40.5) < .5, "Seekbar must preview the target before release");
   await page.mouse.up();
   await page.waitForFunction(n => window.playerSeekFixture.logs.slice(n).some(e => e.event === "seek.resumed"), before);
@@ -219,12 +219,12 @@ async function seekChecks(page, legacy) {
 
   if (!legacy) await speedMenuKeyboardChecks(page, false);
 
-  await page.getByRole("button", { name: "暂停", exact: true }).click();
+  await page.getByRole("button", { name: "일시정지", exact: true }).click();
   await clickProgress(page, .6);
   logs = await waitLog(page, "seek.ready");
   assert(await page.locator("video").evaluate(v => v.paused), "Paused seek must stay paused");
   const keyboardBefore = logs.length;
-  await page.getByRole("slider", { name: "播放进度" }).focus();
+  await page.getByRole("slider", { name: "재생 위치" }).focus();
   await page.keyboard.press("ArrowRight");
   await page.waitForFunction(n => window.playerSeekFixture.logs.slice(n).some(e => e.event === "seek.ready"), keyboardBefore);
   assert((await getLogs(page)).slice(keyboardBefore).some(e => e.event === "seek.request" && e.data.source.endsWith("_keyboard")), "Native keyboard seek must still work");
@@ -233,18 +233,18 @@ async function seekChecks(page, legacy) {
 
   // Page changes during capture must cancel the preview rather than seek the hidden player.
   const cancelledBefore = (await getLogs(page)).length;
-  const cancelBox = await page.getByRole("slider", { name: "播放进度" }).boundingBox();
+  const cancelBox = await page.getByRole("slider", { name: "재생 위치" }).boundingBox();
   await page.mouse.move(cancelBox.x + cancelBox.width * .3, cancelBox.y + cancelBox.height / 2);
   await page.mouse.down();
   await page.mouse.move(cancelBox.x + cancelBox.width * .7, cancelBox.y + cancelBox.height / 2);
   await page.evaluate(() => window.playerSeekFixture.setActive(false));
-  await page.waitForFunction(() => document.querySelector('input[aria-label="播放进度"]').disabled);
+  await page.waitForFunction(() => document.querySelector('input[aria-label="재생 위치"]').disabled);
   await page.mouse.up();
   const cancelled = (await getLogs(page)).slice(cancelledBefore);
   assert(cancelled.some(e => e.event === "seek.input.cancel"), "Deactivation must cancel the drag");
   assert(!cancelled.some(e => e.event === "seek.request"), "Cancelled drag must not commit a seek");
   await page.evaluate(() => window.playerSeekFixture.setActive(true));
-  await page.waitForFunction(() => !document.querySelector('input[aria-label="播放进度"]').disabled);
+  await page.waitForFunction(() => !document.querySelector('input[aria-label="재생 위치"]').disabled);
   assert(await page.locator("video").evaluate(v => v.paused), "Returning must preserve manual pause");
   await page.evaluate(() => window.playerSeekFixture.setLogging(false));
   const count = (await getLogs(page)).length;
@@ -333,7 +333,7 @@ async function lifecyclePlayerCheck(page, legacy) {
     await Promise.race([manifestHeld, new Promise((_, reject) => { holdDeadline = setTimeout(() => reject(new Error("Manifest interception timed out")), 15000); })]);
     clearTimeout(holdDeadline);
     await page.evaluate(async () => { await window.playerSeekFixture.setLogging(true); window.playerSeekFixture.setActive(false); });
-    await page.waitForFunction(() => document.querySelector('input[aria-label="播放进度"]').disabled);
+    await page.waitForFunction(() => document.querySelector('input[aria-label="재생 위치"]').disabled);
     release();
     await page.waitForFunction(() => window.playerSeekFixture.engineState().levels > 0);
     await page.waitForTimeout(350);
@@ -345,19 +345,19 @@ async function lifecyclePlayerCheck(page, legacy) {
     assert(!logs.some(e => e.event === "hlsFragLoading"), "Hidden manifest must not start fragment loading");
     await page.evaluate(() => window.playerSeekFixture.setActive(true));
     await page.waitForFunction(() => document.querySelector("video").currentTime > 1 && !document.querySelector("video").paused);
-    await page.getByRole("button", { name: "暂停", exact: true }).click();
+    await page.getByRole("button", { name: "일시정지", exact: true }).click();
     await page.evaluate(() => window.playerSeekFixture.setActive(false));
     await page.waitForFunction(() => !window.playerSeekFixture.engineState().loading);
     await page.evaluate(() => window.playerSeekFixture.setActive(true));
-    await page.waitForFunction(() => !document.querySelector('input[aria-label="播放进度"]').disabled);
+    await page.waitForFunction(() => !document.querySelector('input[aria-label="재생 위치"]').disabled);
     assert(await page.locator("video").evaluate(v => v.paused), "Manual pause must survive page reactivation");
-    await page.getByRole("button", { name: "播放", exact: true }).first().click();
+    await page.getByRole("button", { name: "재생", exact: true }).first().click();
     await page.waitForFunction(() => !document.querySelector("video").paused);
     await page.locator("video").evaluate(v => v.pause());
     await page.evaluate(() => window.playerSeekFixture.setActive(false));
     await page.waitForFunction(() => !window.playerSeekFixture.engineState().loading);
     await page.evaluate(() => window.playerSeekFixture.setActive(true));
-    await page.waitForFunction(() => !document.querySelector('input[aria-label="播放进度"]').disabled);
+    await page.waitForFunction(() => !document.querySelector('input[aria-label="재생 위치"]').disabled);
     assert(await page.locator("video").evaluate(v => v.paused), "Native/PiP pause must survive page reactivation");
     return { inactive_paused: state.paused, inactive_fragment_loading: false, manual_pause_preserved: true, native_pause_preserved: true };
   } finally { clearTimeout(holdDeadline); release(); await page.unroute("**/hls?*"); }
@@ -419,7 +419,7 @@ async function proxyRecoveryCheck(page) {
       await page.evaluate(() => window.playerSeekFixture.setActive(true));
       await page.waitForFunction(() => document.querySelector("video").readyState >= 2);
       assert(await page.locator("video").evaluate(v => v.paused), "Reactivation must retain manual pause");
-      await page.getByRole("button", { name: "播放", exact: true }).first().click();
+      await page.getByRole("button", { name: "재생", exact: true }).first().click();
       await page.waitForFunction(() => !document.querySelector("video").paused && document.querySelector("video").currentTime > 20);
       const playingAt = await page.locator("video").evaluate(v => v.currentTime);
       const playingRetries = (await getLogs(page)).filter(e => e.event === "proxy.restored").length;

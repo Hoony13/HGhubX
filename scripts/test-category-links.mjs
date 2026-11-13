@@ -44,8 +44,8 @@ try {
       report.external.push(url.href); return route.abort();
     });
     await page.goto(origin);
-    await page.getByRole("navigation", { name: "主导航" }).getByRole("button", { name: "分类", exact: true }).click();
-    const links = page.locator(".ios-collection-links").filter({ has: page.getByRole("button", { name: "专题", exact: true }) });
+    await page.getByRole("navigation", { name: "주 메뉴" }).getByRole("button", { name: "카테고리", exact: true }).click();
+    const links = page.locator(".ios-collection-links").filter({ has: page.getByRole("button", { name: "컬렉션", exact: true }) });
     await links.waitFor();
     await links.evaluate(async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
     const geometry = await links.evaluate(group => {
@@ -64,7 +64,7 @@ try {
     });
     const result = { ...scenario, geometry }; report.cases.push(result);
     assert.equal(geometry.cards.length, 2);
-    assert.deepEqual(geometry.cards.map(card => card.subtitle), ["精选专辑合集", "按题材找片"]);
+    assert.deepEqual(geometry.cards.map(card => card.subtitle), ["엄선한 작품 모음", "장르별 작품 찾기"]);
     if (expectWrapped) {
       assert(geometry.cards.some(card => card.subtitleLines > 1), "Baseline must reproduce narrow-column subtitle wrapping");
     } else {

@@ -27,10 +27,10 @@ function Row({ item, current, probe, busy, disabled, onPick, onProbe }: {
       <span
         title={probe ? (probe.error || (probe.status ? `HTTP ${probe.status}` : "")) : ""}
         className={`text-[12px] tabular-nums shrink-0 ${probe ? (probe.ok ? "text-mint" : "text-danger") : "text-dim"}`}>
-        {busy ? "…" : probe ? (probe.ok ? `${probe.ms}ms` : probe.status ? `HTTP ${probe.status}` : "失败") : "—"}
+        {busy ? "…" : probe ? (probe.ok ? `${probe.ms}ms` : probe.status ? `HTTP ${probe.status}` : "실패") : "—"}
       </span>
       <Button onClick={() => onProbe(item.url)} disabled={busy || disabled}
-        className="shrink-0 h-7 px-2.5 rounded-(--r-sm) bg-s4 text-[12px] text-on/80 pressable disabled:opacity-50">检测</Button>
+        className="shrink-0 h-7 px-2.5 rounded-(--r-sm) bg-s4 text-[12px] text-on/80 pressable disabled:opacity-50">검사</Button>
     </div>
   );
 }
@@ -75,7 +75,7 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
     }).catch((e) => {
       if (request === stateRequest.current) {
         setReady(false);
-        setStateError((e as Error).message || "读取线路失败");
+        setStateError((e as Error).message || "서버 목록을 읽지 못했습니다");
       }
     });
   };
@@ -90,7 +90,7 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
     } catch (e) {
       setMirrors([]);
       setRecommended([]);
-      setMirrorErr((e as Error).message || "镜像线路获取失败");
+      setMirrorErr((e as Error).message || "미러 서버를 가져오지 못했습니다");
     } finally {
       setLoadingMirrors(false);
     }
@@ -125,7 +125,7 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
         return next;
       });
     } catch (e) {
-      toast((e as Error).message || "检测失败", "info");
+      toast((e as Error).message || "검사 실패", "info");
     } finally {
       setProbing("");
     }
@@ -145,12 +145,12 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
       if (next.base !== state?.base) setUser(null);
       setState((s) => (s ? { ...s, ...next } : s));
       if (key === "custom" || key === "reset") setCustom(next.custom ? next.base : "");
-      toast(`线路已切换到 ${hostOf(next.base)}，已使用手动选线，跨站点需重新登录`, "ok");
+      toast(`서버 변경: ${hostOf(next.base)}. 수동 선택이 적용되었습니다. 사이트가 달라지면 다시 로그인해 주세요`, "ok");
       // 走的是新域名了，列表页得重新拉一遍，否则还是旧线路的内容
       window.dispatchEvent(new Event("hg:line-changed"));
     } catch (e) {
       if (wasAuto) void setAutoLine(true);
-      const error = (e as Error).message || "切换失败";
+      const error = (e as Error).message || "변경 실패";
       tracePlayback("line.manual", { ok: false, err: error });
       if (key === "custom" || key === "reset") setCustomError(error);
       else toast(error, "info");
@@ -170,7 +170,7 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
       const url = new URL(raw);
       if (url.protocol !== "https:" || url.pathname !== "/" || url.search || url.hash || url.username || url.password) throw new Error();
     } catch {
-      setCustomError("请填写 HTTPS 站点根地址，不带路径、参数或账号密码");
+      setCustomError("경로, 매개변수, 계정 정보 없이 HTTPS 사이트의 기본 주소를 입력해 주세요");
       return;
     }
     void applyLine("custom", () => api.lineCustomSet(raw));
@@ -185,40 +185,40 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
       <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2">
         <span className="w-8 h-8 rounded-full bg-s3 flex items-center justify-center text-primary"><ISettings size={16} /></span>
         <div className="flex-1 min-w-0">
-          <div className="text-[15px] font-bold text-on leading-tight">线路</div>
-          <div className="text-[12px] text-mut mt-0.5 truncate">当前：{state ? hostOf(state.base) : "读取中…"}</div>
+          <div className="text-[15px] font-bold text-on leading-tight">서버</div>
+          <div className="text-[12px] text-mut mt-0.5 truncate">현재: {state ? hostOf(state.base) : "읽는 중…"}</div>
         </div>
-        <Button onClick={close} disabled={!!switching} aria-label="关闭" className="min-w-12 min-h-12 rounded-full bg-s3/80 flex items-center justify-center text-mut pressable"><IClose size={16} /></Button>
+        <Button onClick={close} disabled={!!switching} aria-label="닫기" className="min-w-12 min-h-12 rounded-full bg-s3/80 flex items-center justify-center text-mut pressable"><IClose size={16} /></Button>
       </div>
 
       <div className="flex-1 scroll-y px-3 pb-4">
         {stateError && <div role="alert" className="text-[13px] text-danger px-1">
-          {stateError}<Button className="min-h-12 px-3 text-primary" onClick={() => readState(true)}>重新读取</Button>
+          {stateError}<Button className="min-h-12 px-3 text-primary" onClick={() => readState(true)}>다시 읽기</Button>
         </div>}
-        <GroupHead title="自定义镜像" hint="保存后使用手动选线" />
+        <GroupHead title="사용자 지정 미러" hint="저장하면 서버를 수동으로 선택합니다" />
         <Surface className="rounded-(--r-md) bg-s2 px-3.5 py-3">
           <form onSubmit={event => { event.preventDefault(); saveCustom(); }}>
-            <label htmlFor="custom-line-address" className="block text-[14px] text-on mb-2">镜像地址</label>
-            <Input id="custom-line-address" aria-label="镜像地址" value={custom} disabled={busyAll}
+            <label htmlFor="custom-line-address" className="block text-[14px] text-on mb-2">미러 주소</label>
+            <Input id="custom-line-address" aria-label="미러 주소" value={custom} disabled={busyAll}
               className="min-h-12 w-full min-w-0 text-[14px]" type="url" inputMode="url" autoCapitalize="none" autoComplete="off" spellCheck={false}
               placeholder="https://mirror.example.com" aria-invalid={!!customError}
               aria-describedby={`custom-line-hint${customError ? " custom-line-error" : ""}`}
               onChange={event => { setCustom(event.target.value); setCustomError(""); }} />
-            <p id="custom-line-hint" className="text-[12px] text-mut leading-relaxed mt-2">填写你信任的 HTTPS 站点。登录请求会发送到该站点；切换到其他站点后需重新登录。</p>
+            <p id="custom-line-hint" className="text-[12px] text-mut leading-relaxed mt-2">신뢰하는 HTTPS 사이트를 입력하세요. 로그인 요청이 해당 사이트로 전송되며 다른 사이트로 전환하면 다시 로그인해야 합니다.</p>
             {customError && <p id="custom-line-error" role="alert" className="text-[13px] text-danger break-words mt-2">{customError}</p>}
             <div className="flex gap-2 mt-3">
-              <Button variant="secondary" disabled={busyAll} onClick={() => { void applyLine("reset", api.lineReset); }} className="min-h-12 px-3 flex-1">{switching === "reset" ? "恢复中…" : "恢复主站"}</Button>
-              <Button variant="primary" disabled={busyAll} type="submit" className="min-h-12 px-3 flex-1">{switching === "custom" ? "保存中…" : "保存镜像"}</Button>
+              <Button variant="secondary" disabled={busyAll} onClick={() => { void applyLine("reset", api.lineReset); }} className="min-h-12 px-3 flex-1">{switching === "reset" ? "복원 중…" : "기본 서버 복원"}</Button>
+              <Button variant="primary" disabled={busyAll} type="submit" className="min-h-12 px-3 flex-1">{switching === "custom" ? "저장 중…" : "미러 저장"}</Button>
             </div>
           </form>
         </Surface>
         <GroupHead
-          title="固定线路"
-          hint="需代理 / 非大陆网络"
+          title="고정 서버"
+          hint="프록시 또는 중국 본토 외 네트워크 필요"
           actions={
             <Button onClick={() => probe(fixed, "fixed")} disabled={busyAll || !fixed.length}
               className="text-[12px] text-primary pressable disabled:opacity-50">
-              {probing === "fixed" ? "检测中…" : "全部检测"}
+              {probing === "fixed" ? "검사 중…" : "모두 검사"}
             </Button>
           }
         />
@@ -227,17 +227,17 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
             <Row key={it.url} item={it} current={state?.base === it.url} probe={probes[it.url]}
               busy={probing === it.url} disabled={busyAll} onPick={pick} onProbe={(u) => probe([{ url: u }], u)} />
           ))}
-          {!fixed.length && <div className="px-3.5 py-3 text-[12px] text-mut">读取中…</div>}
+          {!fixed.length && <div className="px-3.5 py-3 text-[12px] text-mut">읽는 중…</div>}
         </Surface>
 
         <GroupHead
-          title="推荐镜像"
-          hint="来自发布页 · 当前线路置顶"
+          title="추천 미러"
+          hint="공식 주소 안내 페이지 제공 · 현재 서버를 맨 위에 표시"
           actions={
             recommended?.length ? (
               <Button onClick={() => probe(recommended, "recommended")} disabled={busyAll}
                 className="text-[12px] text-primary pressable disabled:opacity-50">
-                {probing === "recommended" ? "检测中…" : `全部检测（${recommended.length}）`}
+                {probing === "recommended" ? "검사 중…" : `모두 검사 (${recommended.length})`}
               </Button>
             ) : undefined
           }
@@ -245,7 +245,7 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
         <Surface className="rounded-(--r-md) bg-s2 divide-y divide-s3 overflow-hidden">
           {loadingMirrors && <div className="flex justify-center py-6"><Loader className="w-6 h-6 spinner" /></div>}
           {!loadingMirrors && !recommended?.length && (
-            <div className="px-3.5 py-3 text-[12px] text-mut">推荐页里没有可用的镜像地址</div>
+            <div className="px-3.5 py-3 text-[12px] text-mut">추천 페이지에 사용 가능한 미러 주소가 없습니다</div>
           )}
           {!loadingMirrors && (recommended || []).map((it) => (
             <Row key={it.url} item={it} current={state?.base === it.url} probe={probes[it.url]}
@@ -254,18 +254,18 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
         </Surface>
 
         <GroupHead
-          title="镜像线路"
-          hint="一般可直连"
+          title="미러 서버"
+          hint="일반적으로 직접 연결 가능"
           actions={
             <>
               <Button onClick={() => { void readMirrors(); }} disabled={loadingMirrors}
                 className="inline-flex items-center gap-1 text-[12px] text-primary pressable disabled:opacity-50">
-                <IRefresh size={12} />{loadingMirrors ? "获取中…" : "刷新"}
+                <IRefresh size={12} />{loadingMirrors ? "가져오는 중…" : "새로고침"}
               </Button>
               {!!mirrors?.length && (
                 <Button onClick={() => probe(mirrors, "mirrors")} disabled={busyAll}
                   className="text-[12px] text-primary pressable disabled:opacity-50">
-                  {probing === "mirrors" ? "检测中…" : `全部检测（${mirrors.length}）`}
+                  {probing === "mirrors" ? "검사 중…" : `모두 검사 (${mirrors.length})`}
                 </Button>
               )}
             </>
@@ -275,12 +275,12 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
           {loadingMirrors && <div className="flex justify-center py-6"><Loader className="w-6 h-6 spinner" /></div>}
           {!loadingMirrors && mirrorErr && (
             <div className="px-3.5 py-3">
-              <div className="text-[12px] text-danger">镜像线路获取失败</div>
+              <div className="text-[12px] text-danger">미러 서버를 가져오지 못했습니다</div>
               <div className="text-[12px] text-mut mt-1 break-all">{mirrorErr}</div>
             </div>
           )}
           {!loadingMirrors && !mirrorErr && mirrors?.length === 0 && (
-            <div className="px-3.5 py-3 text-[12px] text-mut">地址发布页里没有可用的镜像地址</div>
+            <div className="px-3.5 py-3 text-[12px] text-mut">주소 안내 페이지에 사용 가능한 미러 주소가 없습니다</div>
           )}
           {!loadingMirrors && (mirrors || []).map((it) => (
             <Row key={it.url} item={it} current={state?.base === it.url} probe={probes[it.url]}
@@ -289,14 +289,14 @@ export default function LinePicker({ open, onClose }: { open: boolean; onClose: 
         </Surface>
 
         <div className="text-[12px] text-dim leading-relaxed px-1 mt-4">
-          切换后立即生效，请求链路与数据模型不变。这里的「检测」只探这一次；
-          日常的自动选线在 设置 → 网络 → 自动选择线路。
+          변경 사항은 즉시 적용되며 요청 경로와 데이터 모델은 유지됩니다. 여기서 실행하는 검사는 일회성이며,
+          자동 서버 선택은 설정 → 네트워크 → 서버 자동 선택에서 관리할 수 있습니다.
         </div>
       </div>
     </div>
   );
 
   return isMobile
-    ? <Sheet open={open} onClose={close} label="选择播放源">{body}</Sheet>
-    : <Modal open={open} onClose={close} label="选择播放源" width={460}>{body}</Modal>;
+    ? <Sheet open={open} onClose={close} label="재생 서버 선택">{body}</Sheet>
+    : <Modal open={open} onClose={close} label="재생 서버 선택" width={460}>{body}</Modal>;
 }

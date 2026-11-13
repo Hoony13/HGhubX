@@ -57,27 +57,27 @@ export function PostsPage({ onBack, wide }: { onBack: () => void; wide: boolean 
   return (
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 flex items-center gap-2 px-2 bg-s1" style={{ paddingTop: "var(--sat, 0px)" }}>
-        <Button aria-label="返回" onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={19} /></Button>
-        <span className="text-[15px] font-bold text-on">吃瓜</span>
-        <span className="text-[12px] text-mut ml-1">圈内爆料 · 每日更新</span>
-        <Button onClick={() => setSearching(true)} aria-label="搜索吃瓜" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
+        <Button aria-label="뒤로" onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={19} /></Button>
+        <span className="text-[15px] font-bold text-on">이슈</span>
+        <span className="text-[12px] text-mut ml-1">화제의 소식 · 매일 업데이트</span>
+        <Button onClick={() => setSearching(true)} aria-label="이슈 검색" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
       </div>
       <div className="flex-1 scroll-y px-3 pt-3 pb-8">
         {items.length ? (
           <div className={`ios-media-grid ${wide ? "is-wide" : ""}`}>
             {items.map((p) => (
-              <MediaCard key={p.id} title={p.title} cover={p.cover} subtitle={`${fmt(p.hot)} 次浏览`} onOpen={() => push({ kind: "post", id: p.id })} />
+              <MediaCard key={p.id} title={p.title} cover={p.cover} subtitle={`${fmt(p.hot)}회 조회`} onOpen={() => push({ kind: "post", id: p.id })} />
             ))}
           </div>
         ) : loading ? (
           <div className="flex justify-center py-12"><Loader className="w-8 h-8 spinner" /></div>
         ) : (
-          <Empty icon={<IFireF size={26} />} title="暂无吃瓜内容" sub="稍后再来看看" />
+          <Empty icon={<IFireF size={26} />} title="이슈 게시물이 없습니다" sub="잠시 후 다시 확인해 주세요" />
         )}
         <div ref={sentinel} className="h-10" />
         {loading && <div className="flex justify-center py-2"><Loader className="w-6 h-6 spinner" /></div>}
       </div>
-      {searching && <InplaceSearch kind="post" postLabel="吃瓜帖子" wide={wide} onClose={() => setSearching(false)} onOpenPost={(p) => push({ kind: "post", id: p.id })} />}
+      {searching && <InplaceSearch kind="post" postLabel="이슈 게시물" wide={wide} onClose={() => setSearching(false)} onOpenPost={(p) => push({ kind: "post", id: p.id })} />}
     </div>
   );
 }
@@ -102,7 +102,7 @@ export function PostDetail({ id, onBack, active = true }: { id: number; onBack: 
   const safeHtml = useMemo(() => sanitizeHtml(content), [content, strictSecurity]);
   const openSafeLink = (url: string) => {
     api.openUrl(url).catch(() => {
-      copyText(url).then(() => toast("链接已复制", "ok")).catch(() => toast("复制失败", "info"));
+      copyText(url).then(() => toast("링크를 복사했습니다", "ok")).catch(() => toast("복사 실패", "info"));
     });
   };
 
@@ -118,7 +118,7 @@ export function PostDetail({ id, onBack, active = true }: { id: number; onBack: 
         /* 老字段有值就直接用，省一次请求 */
         if (p.video_url) { setSegs([p.video_url]); setPlay(true); }
       })
-      .catch((e) => { if (alive) setErr((e as Error).message || "加载失败"); });
+      .catch((e) => { if (alive) setErr((e as Error).message || "불러오기 실패"); });
     setResolving(true);
     api.postPlayback(id)
       .then((r) => {
@@ -134,13 +134,13 @@ export function PostDetail({ id, onBack, active = true }: { id: number; onBack: 
   return (
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 flex items-center gap-2 px-2 bg-s1" style={{ paddingTop: isMobile ? "var(--sat, 0px)" : 0, height: isMobile ? "calc(44px + var(--sat, 0px))" : 44 }}>
-        <Button aria-label="返回" onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={19} /></Button>
-        <span className="text-[14px] font-semibold text-on">吃瓜详情</span>
+        <Button aria-label="뒤로" onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={19} /></Button>
+        <span className="text-[14px] font-semibold text-on">이슈 상세</span>
       </div>
 
       <div className="flex-1 scroll-y pb-8">
         {err ? (
-          <Empty icon={<IFireF size={26} />} title="加载失败" sub={err} />
+          <Empty icon={<IFireF size={26} />} title="불러오기 실패" sub={err} />
         ) : !post ? (
           <div className="flex justify-center py-12"><Loader className="w-8 h-8 spinner" /></div>
         ) : (
@@ -154,7 +154,7 @@ export function PostDetail({ id, onBack, active = true }: { id: number; onBack: 
                     if (seg < segs.length - 1) setSeg(seg + 1); else setPlay(false);
                   }} />
               ) : (
-                <Button onClick={() => { if (src) setPlay(true); else if (!resolving) toast("该帖子没有视频", "info"); }} className="absolute inset-0">
+                <Button onClick={() => { if (src) setPlay(true); else if (!resolving) toast("이 게시물에는 영상이 없습니다", "info"); }} className="absolute inset-0">
                   <Img src={post.cover} eager />
                   {src && (
                     <span className="absolute inset-0 flex items-center justify-center">

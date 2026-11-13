@@ -28,7 +28,7 @@ impl Mode {
             "system" | "auto" | "" => Ok(Self::System),
             "custom" | "manual" => Ok(Self::Custom),
             "off" | "none" | "direct" => Ok(Self::Off),
-            _ => Err("代理模式无效".into()),
+            _ => Err("프록시 모드가 올바르지 않습니다".into()),
         }
     }
 }
@@ -105,7 +105,7 @@ impl State {
         } else {
             self.config.url.clone()
         };
-        let path = self.path.as_ref().ok_or("代理设置尚未初始化")?;
+        let path = self.path.as_ref().ok_or("프록시 설정이 초기화되지 않았습니다")?;
         write_atomic(
             path,
             &json!({"mode": mode.as_str(), "url": url}).to_string(),
@@ -139,7 +139,7 @@ pub fn bind(dir: &Path) {
 }
 
 pub fn set(mode: &str, url: &str) -> Result<Value, String> {
-    let mut state = STATE.write().map_err(|_| "代理设置锁失败")?;
+    let mut state = STATE.write().map_err(|_| "프록시 설정 잠금 실패")?;
     state.set(mode, url)?;
     Ok(json!({"mode": state.config.mode.as_str()}))
 }
@@ -148,33 +148,33 @@ pub fn set(mode: &str, url: &str) -> Result<Value, String> {
 pub fn normalize_proxy(raw: &str) -> Result<String, String> {
     let raw = raw.trim();
     if raw.is_empty() {
-        return Err("请填写代理地址（例：http://127.0.0.1:7897）".into());
+        return Err("프록시 주소를 입력해 주세요 (예: http://127.0.0.1:7897)".into());
     }
     if raw.chars().any(char::is_control) {
-        return Err("代理地址含控制字符".into());
+        return Err("프록시 주소에 제어 문자가 포함되어 있습니다".into());
     }
     let with_scheme = if raw.contains("://") {
         raw.to_owned()
     } else {
         format!("http://{raw}")
     };
-    let parsed = url::Url::parse(&with_scheme).map_err(|_| "代理地址格式无效".to_string())?;
+    let parsed = url::Url::parse(&with_scheme).map_err(|_| "프록시 주소 형식이 올바르지 않습니다".to_string())?;
     if !["http", "https", "socks5", "socks5h", "socks4", "socks4a"].contains(&parsed.scheme()) {
-        return Err("代理协议只支持 http / https / socks5 / socks4".into());
+        return Err("프록시 프로토콜은 http / https / socks5 / socks4만 지원합니다".into());
     }
     let host = parsed
         .host_str()
         .filter(|host| !host.is_empty())
-        .ok_or("代理地址缺少主机名")?;
+        .ok_or("프록시 주소에 호스트 이름이 없습니다")?;
     if !matches!(parsed.path(), "" | "/") || parsed.query().is_some() || parsed.fragment().is_some()
     {
-        return Err("代理地址不要带路径、参数或片段".into());
+        return Err("프록시 주소에 경로, 매개변수 또는 프래그먼트를 포함하지 마세요".into());
     }
     if parsed.port() == Some(0) {
-        return Err("代理端口应为 1–65535".into());
+        return Err("프록시 포트는 1~65535여야 합니다".into());
     }
     if parsed.username().is_empty() && parsed.password().is_some() {
-        return Err("代理认证缺少用户名".into());
+        return Err("프록시 인증에 사용자 이름이 없습니다".into());
     }
     let host = if host.contains(':') && !host.starts_with('[') {
         format!("[{host}]")
@@ -191,7 +191,7 @@ pub fn normalize_proxy(raw: &str) -> Result<String, String> {
         .map(|port| format!(":{port}"))
         .unwrap_or_default();
     let normalized = format!("{}://{auth}{host}{port}", parsed.scheme());
-    reqwest::Proxy::all(&normalized).map_err(|_| "代理配置无效（已隐藏原始值）")?;
+    reqwest::Proxy::all(&normalized).map_err(|_| "프록시 설정이 올바르지 않습니다 (입력값 숨김)")?;
     Ok(normalized)
 }
 
@@ -219,7 +219,7 @@ fn write_atomic(path: &Path, text: &str) -> Result<(), String> {
     };
     if write().is_err() {
         let _ = std::fs::remove_file(&temp);
-        return Err("代理设置保存失败，已保留原设置".into());
+        return Err("프록시 설정을 저장하지 못해 기존 설정을 유지합니다".into());
     }
     Ok(())
 }

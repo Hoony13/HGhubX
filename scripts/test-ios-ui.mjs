@@ -115,19 +115,19 @@ try {
         document.body.append(probe); const size = parseFloat(getComputedStyle(probe).fontSize); probe.remove();
         return size >= minimum;
       }, test.minimumFontSize), "Chromium applies the enlarged minimum text size");
-      const nav = page.getByRole("navigation", { name: "主导航" });
-      for (const label of ["首页", "搜索", "分类", "我的"]) await nav.getByRole("button", { name: label, exact: true }).waitFor();
+      const nav = page.getByRole("navigation", { name: "주 메뉴" });
+      for (const label of ["홈", "검색", "카테고리", "마이페이지"]) await nav.getByRole("button", { name: label, exact: true }).waitFor();
       await page.waitForFunction(theme => document.documentElement.dataset.theme === theme, test.theme);
       if (test.android) await page.waitForFunction(() => window.__IOS_UI_FIXTURE__.hasHardwareBack());
       check("original navigation and persisted appearance");
       if (test.mobile) {
-        const videoNav = page.locator('nav[aria-label="主导航"]');
+        const videoNav = page.locator('nav[aria-label="주 메뉴"]');
         await videoNav.waitFor();
         const navBackground = await videoNav.evaluate(nav => nav.getAttribute("data-over-video"));
         assert.equal(navBackground, "true", "Home navigation declares its video background");
-        await nav.getByRole("button", { name: "首页", exact: true }).click();
+        await nav.getByRole("button", { name: "홈", exact: true }).click();
         const homeVideoMaterial = await page.evaluate(() => {
-          const nav = document.querySelector('nav[aria-label="主导航"]');
+          const nav = document.querySelector('nav[aria-label="주 메뉴"]');
           const selected = nav?.querySelector('[aria-current="page"]');
           const unselected = nav?.querySelector('button:not([aria-current="page"])');
           const glass = nav?.querySelector(".hg-glass");
@@ -139,13 +139,13 @@ try {
         assert.equal(homeVideoMaterial.background, "rgba(28, 28, 32, 0.94)", "Home navigation keeps an opaque dark glass surface over black video");
         check("home navigation text contrast on video in both themes");
       }
-      await nav.getByRole("button", { name: "搜索", exact: true }).click();
+      await nav.getByRole("button", { name: "검색", exact: true }).click();
 
-      const hotSearch = page.getByRole("region", { name: "热搜榜", exact: true });
-      await hotSearch.getByRole("button", { name: "播放 城市与晚风", exact: true }).waitFor();
+      const hotSearch = page.getByRole("region", { name: "인기 검색 순위", exact: true });
+      await hotSearch.getByRole("button", { name: "재생 城市与晚风", exact: true }).waitFor();
       assert.equal(await hotSearch.locator("ol > li").count(), titles.length, "Hot searches retain upstream rank order");
       assert.equal(await hotSearch.locator("ol > li").first().innerText(), "01\n城市与晚风\n550.1w播放量");
-      await hotSearch.getByRole("button", { name: "播放 城市与晚风", exact: true }).click();
+      await hotSearch.getByRole("button", { name: "재생 城市与晚风", exact: true }).click();
       const playbackPositionSelector = test.mobile ? ".feed-position-pill" : ".desktop-context-header small";
       await page.waitForFunction(selector => [...document.querySelectorAll(selector)].some(el => {
         const bounds = el.getBoundingClientRect();
@@ -161,8 +161,8 @@ try {
       await page.keyboard.press("Escape");
       check("official hot video titles, play counts, rank order, and direct playback");
 
-      const query = page.getByRole("textbox", { name: "搜索短剧、帖子、题材…" });
-      await query.fill("都市"); await query.press("Enter");
+      const query = page.getByRole("textbox", { name: "숏드라마, 게시물, 장르 검색…" });
+      await query.fill("도시"); await query.press("Enter");
       await page.getByRole("button", { name: titles[0], exact: true }).waitFor();
       assert.equal(await page.getByRole("button", { name: titlePattern }).count(), titles.length);
       assert.equal(await page.getByRole("button", { name: titles[0], exact: true }).locator("img").getAttribute("loading"), "eager");
@@ -175,7 +175,7 @@ try {
         await position.waitFor();
         const topControls = await position.evaluate(el => {
           const counter = el.getBoundingClientRect();
-          const mute = document.querySelector('[aria-label="静音"], [aria-label="取消静音"]')?.getBoundingClientRect();
+          const mute = document.querySelector('[aria-label="음소거"], [aria-label="음소거 해제"]')?.getBoundingClientRect();
           return { counter: { left: counter.left, right: counter.right, top: counter.top, bottom: counter.bottom },
             mute: mute ? { left: mute.left, right: mute.right, top: mute.top, bottom: mute.bottom } : null };
         });
@@ -184,14 +184,14 @@ try {
           && topControls.counter.top < topControls.mute.bottom && topControls.counter.bottom > topControls.mute.top, false,
         "Playback position and mute control do not overlap");
         await page.keyboard.press("Escape");
-        await nav.getByRole("button", { name: "搜索", exact: true }).waitFor();
+        await nav.getByRole("button", { name: "검색", exact: true }).waitFor();
         check("Android player counter clears the mute control");
       }
 
       const searchPage = page.locator(".ios-page").filter({ has: query });
-      await searchPage.getByRole("button", { name: "排行榜", exact: true }).click();
-      const rankSegment = page.getByRole("group", { name: "榜单类型", exact: true });
-      for (const [index, label] of ["热播榜", "推荐榜", "潜力榜"].entries()) {
+      await searchPage.getByRole("button", { name: "순위", exact: true }).click();
+      const rankSegment = page.getByRole("group", { name: "순위 유형", exact: true });
+      for (const [index, label] of ["인기 순위", "추천 순위", "기대작 순위"].entries()) {
         await rankSegment.getByRole("button", { name: label, exact: true }).click();
         await assertSlider(rankSegment, 3, index, `rank:${label}`);
         await page.locator(".ios-rank-row").first().waitFor();
@@ -202,8 +202,8 @@ try {
       await query.waitFor();
       check("all three rank choices move the shared indicator into the selected button bounds");
 
-      await nav.getByRole("button", { name: "分类", exact: true }).click();
-      await page.getByRole("button").filter({ has: page.getByText("专题", { exact: true }) }).click();
+      await nav.getByRole("button", { name: "카테고리", exact: true }).click();
+      await page.getByRole("button").filter({ has: page.getByText("컬렉션", { exact: true }) }).click();
       const topic = page.getByRole("button").filter({ has: page.getByText("本周精选", { exact: true }) });
       await topic.waitFor();
       const topicShape = await topic.evaluate(el => {
@@ -216,25 +216,25 @@ try {
       await topic.click();
       await page.getByRole("button", { name: titles[0], exact: true }).waitFor();
       assert.equal(await topic.count(), 0, "Covered topic-list controls are removed from the accessibility tree");
-      assert.equal(await page.getByRole("button", { name: "返回", exact: true }).count(), 1, "Only the top page's back control is accessible");
+      assert.equal(await page.getByRole("button", { name: "뒤로", exact: true }).count(), 1, "Only the top page's back control is accessible");
       await shot("topic");
       await page.keyboard.press("Escape");
       await topic.waitFor(); // Wait for React to commit before a second Escape.
       await page.keyboard.press("Escape");
-      await page.getByRole("button").filter({ has: page.getByText("专题", { exact: true }) }).waitFor();
+      await page.getByRole("button").filter({ has: page.getByText("컬렉션", { exact: true }) }).waitFor();
       check("topic navigation, inert background, and sequential Escape");
 
-      await nav.getByRole("button", { name: "我的", exact: true }).click();
+      await nav.getByRole("button", { name: "마이페이지", exact: true }).click();
       await page.getByRole("button", { name: titles[0], exact: true }).waitFor();
       assert.equal(await page.getByRole("button", { name: titlePattern }).count(), titles.length);
-      await page.getByRole("button", { name: /未登录/ }).click();
-      const profileLogin = page.getByRole("dialog", { name: "登录 HGhubX", exact: true });
-      await profileLogin.getByLabel("账号", { exact: true }).fill("profile-fixture");
-      await profileLogin.getByLabel("密码", { exact: true }).fill("test-password");
-      await profileLogin.getByRole("button", { name: "登录", exact: true }).last().click();
+      await page.getByRole("button", { name: /로그인하지 않음/ }).click();
+      const profileLogin = page.getByRole("dialog", { name: "HGhubX 로그인", exact: true });
+      await profileLogin.getByLabel("아이디", { exact: true }).fill("profile-fixture");
+      await profileLogin.getByLabel("비밀번호", { exact: true }).fill("test-password");
+      await profileLogin.getByRole("button", { name: "로그인", exact: true }).last().click();
       const profileLinks = page.locator(".ios-profile-links");
-      await profileLinks.getByRole("button", { name: /^我的关注/ }).waitFor();
-      await profileLinks.getByRole("button", { name: /^我的主页/ }).waitFor();
+      await profileLinks.getByRole("button", { name: /^내 팔로우/ }).waitFor();
+      await profileLinks.getByRole("button", { name: /^내 프로필/ }).waitFor();
       await profileLogin.waitFor({ state: "hidden" });
       await page.getByRole("button", { name: titles[0], exact: true }).locator(".ios-score-badge").waitFor();
       assert.equal(await page.getByRole("button", { name: titles[0], exact: true }).locator(".ios-score-badge").innerText(), "8.5");
@@ -254,8 +254,8 @@ try {
       assert(scorePosition.top < scorePosition.artWidth * .25, "Score badge is not vertically centered on the cover");
       result.posterWidth = Math.round(await page.getByRole("button", { name: titles[0], exact: true }).evaluate(el => el.getBoundingClientRect().width));
       await shot("favorites");
-      const profileSegment = page.getByRole("group", { name: "我的内容", exact: true });
-      await assertSlider(profileSegment, 2, 0, "profile:我的收藏");
+      const profileSegment = page.getByRole("group", { name: "내 콘텐츠", exact: true });
+      await assertSlider(profileSegment, 2, 0, "profile:내 즐겨찾기");
       const linkGeometry = () => profileLinks.evaluate(el => {
         const parent = el.getBoundingClientRect();
         return { x: parent.x, width: parent.width, height: parent.height, columns: [...el.children].map(child => {
@@ -276,32 +276,32 @@ try {
           assert(Math.abs(column[property] - linksBefore.columns[index][property]) < 1, `${label}: shortcut ${index + 1} keeps its ${property}`);
         return after;
       };
-      await profileSegment.getByRole("button", { name: "观看历史", exact: true }).click();
-      await assertSlider(profileSegment, 2, 1, "profile:观看历史");
-      await page.getByText("第 3 集 · 0:55", { exact: true }).waitFor();
+      await profileSegment.getByRole("button", { name: "시청 기록", exact: true }).click();
+      await assertSlider(profileSegment, 2, 1, "profile:시청 기록");
+      await page.getByText("3화 · 0:55", { exact: true }).waitFor();
       assert.equal(await page.getByRole("button", { name: titlePattern }).count(), 1);
       const linksHistory = await assertStableLinks("History switch");
-      await profileSegment.getByRole("button", { name: "我的收藏", exact: true }).click();
-      await assertSlider(profileSegment, 2, 0, "profile:我的收藏 restored");
+      await profileSegment.getByRole("button", { name: "내 즐겨찾기", exact: true }).click();
+      await assertSlider(profileSegment, 2, 0, "profile:내 즐겨찾기 restored");
       await page.getByRole("button", { name: titles[1], exact: true }).waitFor();
       const linksRestored = await assertStableLinks("Collection switch");
       result.profileLinks = { before: linksBefore, history: linksHistory, restored: linksRestored };
-      await page.getByRole("button", { name: "退出登录", exact: true }).click();
-      await page.getByRole("button", { name: /未登录/ }).waitFor();
+      await page.getByRole("button", { name: "로그아웃", exact: true }).click();
+      await page.getByRole("button", { name: /로그인하지 않음/ }).waitFor();
       check("local favorites, score badges, preserved playback progress, two-way slider, and stable profile shortcut columns");
 
-      const accountButton = page.getByRole("button", { name: /未登录/ });
+      const accountButton = page.getByRole("button", { name: /로그인하지 않음/ });
       await accountButton.click();
-      const dialog = page.getByRole("dialog", { name: "登录 HGhubX", exact: true });
+      const dialog = page.getByRole("dialog", { name: "HGhubX 로그인", exact: true });
       await dialog.waitFor();
-      const username = dialog.getByLabel("账号", { exact: true });
-      const password = dialog.getByLabel("密码", { exact: true });
+      const username = dialog.getByLabel("아이디", { exact: true });
+      const password = dialog.getByLabel("비밀번호", { exact: true });
       await username.fill("sample"); await password.fill("test-password");
-      await dialog.getByRole("button", { name: "登录", exact: true }).last().click();
+      await dialog.getByRole("button", { name: "로그인", exact: true }).last().click();
       await dialog.getByRole("alert").waitFor();
-      assert.equal(await dialog.getByRole("alert").textContent(), "账号或密码不正确");
+      assert.equal(await dialog.getByRole("alert").textContent(), "아이디 또는 비밀번호가 올바르지 않습니다");
       assert.equal(await username.inputValue(), "sample", "An unsuccessful login preserves the account input");
-      assert.equal(await page.getByRole("button", { name: "观看历史", exact: true }).count(), 0, "The login dialog makes its background inert");
+      assert.equal(await page.getByRole("button", { name: "시청 기록", exact: true }).count(), 0, "The login dialog makes its background inert");
       await dialog.evaluate(el => {
         const items = [...el.querySelectorAll("button:not(:disabled), input:not(:disabled)")].filter(item => item.tabIndex >= 0 && item.getClientRects().length);
         items.at(-1).focus();
@@ -319,9 +319,9 @@ try {
       await accountButton.waitFor();
       check("visible form labels, login errors, focus trap, Escape, and overlay back");
 
-      await page.getByRole("button", { name: "设置", exact: true }).click();
-      const security = page.getByRole("switch", { name: "严格安全模式", exact: true });
-      const appearance = page.getByRole("group", { name: "外观模式", exact: true });
+      await page.getByRole("button", { name: "설정", exact: true }).click();
+      const security = page.getByRole("switch", { name: "강화 보안 모드", exact: true });
+      const appearance = page.getByRole("group", { name: "테마 모드", exact: true });
       await security.waitFor();
       await page.locator(".ios-setting-group").first().waitFor();
       await page.waitForTimeout(550);
@@ -460,31 +460,31 @@ try {
         assert(contrast(material.muted, material.background) >= 4.5, "Light secondary text meets WCAG AA contrast");
         assert.match(material.surface, /\/\s*\.8[0-9]/, "Light glass remains dense enough to separate from media");
       }
-      await appearance.getByRole("button", { name: test.theme === "dark" ? "浅色" : "深色", exact: true }).click();
+      await appearance.getByRole("button", { name: test.theme === "dark" ? "라이트" : "다크", exact: true }).click();
       await assertSlider(appearance, 3, test.theme === "dark" ? 1 : 2, "appearance:opposite");
       const oppositeTheme = test.theme === "dark" ? "light" : "dark";
       await page.waitForFunction(theme => document.documentElement.dataset.theme === theme, oppositeTheme);
       const beforeThemeBounds = test.android ? await androidShell.boundingBox() : null;
-      await appearance.getByRole("button", { name: test.theme === "dark" ? "深色" : "浅色", exact: true }).click();
+      await appearance.getByRole("button", { name: test.theme === "dark" ? "다크" : "라이트", exact: true }).click();
       await page.waitForFunction(theme => document.documentElement.dataset.theme === theme, test.theme);
       if (!test.reduced) assert(await page.locator("html").evaluate(el => el.classList.contains("theme-transitioning")), "Theme swap starts its transition wash");
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const lightBounds = test.android ? await androidShell.boundingBox() : null;
       if (test.android) assert.deepEqual(lightBounds, beforeThemeBounds, "Android page geometry stays stable during theme change");
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "Theme change does not cause horizontal layout overflow");
-      await appearance.getByRole("button", { name: "深色", exact: true }).click();
+      await appearance.getByRole("button", { name: "다크", exact: true }).click();
       await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
-      await assertSlider(appearance, 3, 2, "appearance:深色");
-      await appearance.getByRole("button", { name: "跟随", exact: true }).click();
-      await assertSlider(appearance, 3, 0, "appearance:跟随");
+      await assertSlider(appearance, 3, 2, "appearance:다크");
+      await appearance.getByRole("button", { name: "자동", exact: true }).click();
+      await assertSlider(appearance, 3, 0, "appearance:자동");
       await page.emulateMedia({ colorScheme: "light" });
       await page.waitForFunction(() => document.documentElement.dataset.theme === "light");
       await page.emulateMedia({ colorScheme: "dark" });
       await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
-      await appearance.getByRole("button", { name: "浅色", exact: true }).scrollIntoViewIfNeeded();
+      await appearance.getByRole("button", { name: "라이트", exact: true }).scrollIntoViewIfNeeded();
       await appearance.scrollIntoViewIfNeeded();
       await shot("settings");
-      const clearCache = page.getByRole("button").filter({ has: page.getByText("清理缓存", { exact: true }) });
+      const clearCache = page.getByRole("button").filter({ has: page.getByText("캐시 삭제", { exact: true }) });
       await clearCache.click();
       const confirmation = page.getByRole("dialog");
       await confirmation.waitFor();

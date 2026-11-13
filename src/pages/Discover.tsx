@@ -25,7 +25,7 @@ export function TopicsPage({ onBack, wide }: { onBack: () => void; wide: boolean
     setErr("");
     api.topics()
       .then((r) => setItems(r?.items || []))
-      .catch((e) => { setErr((e as Error).message || "加载失败"); toast((e as Error).message || "加载失败", "info"); })
+      .catch((e) => { setErr((e as Error).message || "불러오기 실패"); toast((e as Error).message || "불러오기 실패", "info"); })
       .finally(() => setLoading(false));
   }, [toast]);
 
@@ -35,11 +35,11 @@ export function TopicsPage({ onBack, wide }: { onBack: () => void; wide: boolean
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 bg-s1" style={{ paddingTop: "var(--sat, 0px)" }}>
         <div className="px-3 pt-2 pb-3 flex items-center gap-2.5">
-          <Button aria-label="返回" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
-          <span className="text-[17px] font-bold text-on">专题</span>
-          <span className="text-[12px] text-mut">{items.length} 个专辑</span>
-          <Button onClick={() => setSearching(true)} aria-label="搜索短剧" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
-          <Button aria-label="刷新" onClick={load} className="w-9 h-9 rounded-full flex items-center justify-center text-mut hover:bg-s3 pressable"><IRefresh size={16} /></Button>
+          <Button aria-label="뒤로" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
+          <span className="text-[17px] font-bold text-on">컬렉션</span>
+          <span className="text-[12px] text-mut">{items.length}개 컬렉션</span>
+          <Button onClick={() => setSearching(true)} aria-label="숏드라마 검색" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
+          <Button aria-label="새로고침" onClick={load} className="w-9 h-9 rounded-full flex items-center justify-center text-mut hover:bg-s3 pressable"><IRefresh size={16} /></Button>
         </div>
       </div>
 
@@ -47,7 +47,7 @@ export function TopicsPage({ onBack, wide }: { onBack: () => void; wide: boolean
         {loading ? (
           <div className="flex justify-center py-12"><Loader className="w-8 h-8 spinner" /></div>
         ) : err && !items.length ? (
-          <Empty icon={<TopicIcon size={26} />} title="专题加载失败" sub={err} action="重试" onAction={load} />
+          <Empty icon={<TopicIcon size={26} />} title="컬렉션을 불러오지 못했습니다" sub={err} action="다시 시도" onAction={load} />
         ) : items.length ? (
           <div className="grid grid-cols-2 gap-3">
             {items.map((t) => (
@@ -57,7 +57,7 @@ export function TopicsPage({ onBack, wide }: { onBack: () => void; wide: boolean
                   <Img src={t.cover} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm text-[12px] font-semibold text-white/90">
-                    {t.video_count ?? 0} 部
+                    {t.video_count ?? 0}편
                   </span>
                 </div>
                 <div className="p-2.5">
@@ -68,11 +68,11 @@ export function TopicsPage({ onBack, wide }: { onBack: () => void; wide: boolean
             ))}
           </div>
         ) : (
-          <Empty icon={<TopicIcon size={26} />} title="暂无专题" />
+          <Empty icon={<TopicIcon size={26} />} title="컬렉션이 없습니다" />
         )}
         {wide && <div className="h-2" />}
       </div>
-      {searching && <InplaceSearch kind="video" wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: "搜索 · 专题" })} />}
+      {searching && <InplaceSearch kind="video" wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: "검색 · 컬렉션" })} />}
     </div>
   );
 }
@@ -108,8 +108,8 @@ export function TopicPage({ slug, name, onBack, wide }: { slug: string; name: st
       setPages(pag?.pages || 1);
       setErr("");
     } catch (e) {
-      setErr((e as Error).message || "加载失败");
-      toast((e as Error).message || "加载失败", "info");
+      setErr((e as Error).message || "불러오기 실패");
+      toast((e as Error).message || "불러오기 실패", "info");
     } finally {
       busy.current = false;
       setLoading(false);
@@ -122,12 +122,12 @@ export function TopicPage({ slug, name, onBack, wide }: { slug: string; name: st
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 bg-s1" style={{ paddingTop: "var(--sat, 0px)" }}>
         <div className="px-3 pt-2 pb-3 flex items-center gap-2.5">
-          <Button aria-label="返回" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
+          <Button aria-label="뒤로" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
           <div className="flex-1 min-w-0">
             <div className="text-[16px] font-bold text-on truncate">{topic?.title || name}</div>
-            <div className="text-[12px] text-mut">{topic?.video_count ?? 0} 部 · {videos.length} 已加载</div>
+            <div className="text-[12px] text-mut">{topic?.video_count ?? 0}편 · {videos.length}개 불러옴</div>
           </div>
-          <Button onClick={() => setSearching(true)} aria-label="搜索短剧" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
+          <Button onClick={() => setSearching(true)} aria-label="숏드라마 검색" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
         </div>
         {topic?.intro && <div className="px-4 pb-3 text-[12px] text-mut leading-relaxed clamp-3">{topic.intro}</div>}
       </div>
@@ -135,14 +135,14 @@ export function TopicPage({ slug, name, onBack, wide }: { slug: string; name: st
       <div className="flex-1 scroll-y px-4 pt-3 pb-8">
         {related.length > 0 && (
           <div className="mb-4">
-            <div className="text-[13px] font-semibold text-on/80 mb-2">相关专题</div>
+            <div className="text-[13px] font-semibold text-on/80 mb-2">관련 컬렉션</div>
             <div className="scroll-x flex gap-2.5 snap-x">
               {related.map((r) => (
                 <Button key={r.id} onClick={() => push({ kind: "topic", slug: r.slug, name: r.title })}
                   className="ios-topic-card w-[140px] shrink-0 text-left snap-start pressable">
                   <Surface className="ios-topic-art relative w-full overflow-hidden bg-s1 elev-1" style={{ paddingTop: "56%" }}>
                     <Img src={r.cover} />
-                    <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/55 text-[12px] font-semibold text-white/90">{r.video_count ?? 0} 部</span>
+                    <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/55 text-[12px] font-semibold text-white/90">{r.video_count ?? 0}편</span>
                   </Surface>
                   <div className="mt-1.5 text-[12px] font-medium text-on clamp-1 leading-tight">{r.title}</div>
                 </Button>
@@ -154,15 +154,15 @@ export function TopicPage({ slug, name, onBack, wide }: { slug: string; name: st
         {loading && !videos.length ? (
           <div className="flex justify-center py-12"><Loader className="w-8 h-8 spinner" /></div>
         ) : err && !videos.length ? (
-          <Empty icon={<TopicIcon size={26} />} title="加载失败" sub={err} action="重试" onAction={loadMore} />
+          <Empty icon={<TopicIcon size={26} />} title="불러오기 실패" sub={err} action="다시 시도" onAction={loadMore} />
         ) : videos.length ? (
           <Masonry videos={videos} wide={wide} onOpen={(v) => push({ kind: "feed", videoIds: videos.map((x) => x.id), index: videos.findIndex((x) => x.id === v.id), title: topic?.title || name })} />
         ) : (
-          <Empty icon={<TopicIcon size={26} />} title="暂无内容" />
+          <Empty icon={<TopicIcon size={26} />} title="콘텐츠가 없습니다" />
         )}
         <div ref={sentinel} className="h-8" />
         {loading && videos.length > 0 && <div className="flex justify-center py-3"><Loader className="w-6 h-6 spinner" /></div>}
-        {!loading && videos.length > 0 && page >= pages && <div className="text-center text-[12px] text-dim py-3">— 已经到底啦 —</div>}
+        {!loading && videos.length > 0 && page >= pages && <div className="text-center text-[12px] text-dim py-3">— 마지막 콘텐츠입니다 —</div>}
         {wide && <div className="h-2" />}
       </div>
       {searching && <InplaceSearch kind="video" wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: topic?.title || name })} />}
@@ -183,7 +183,7 @@ export function TagsPage({ onBack, wide }: { onBack: () => void; wide: boolean }
     setErr("");
     api.tags()
       .then((r) => setGroups(r?.categories || []))
-      .catch((e) => { setErr((e as Error).message || "加载失败"); toast((e as Error).message || "加载失败", "info"); })
+      .catch((e) => { setErr((e as Error).message || "불러오기 실패"); toast((e as Error).message || "불러오기 실패", "info"); })
       .finally(() => setLoading(false));
   }, [toast]);
 
@@ -193,10 +193,10 @@ export function TagsPage({ onBack, wide }: { onBack: () => void; wide: boolean }
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 bg-s1" style={{ paddingTop: "var(--sat, 0px)" }}>
         <div className="px-3 pt-2 pb-3 flex items-center gap-2.5">
-          <Button aria-label="返回" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
-          <span className="text-[17px] font-bold text-on">标签</span>
-          <Button onClick={() => setSearching(true)} aria-label="搜索短剧" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
-          <Button aria-label="刷新" onClick={load} className="w-9 h-9 rounded-full flex items-center justify-center text-mut hover:bg-s3 pressable"><IRefresh size={16} /></Button>
+          <Button aria-label="뒤로" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
+          <span className="text-[17px] font-bold text-on">태그</span>
+          <Button onClick={() => setSearching(true)} aria-label="숏드라마 검색" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
+          <Button aria-label="새로고침" onClick={load} className="w-9 h-9 rounded-full flex items-center justify-center text-mut hover:bg-s3 pressable"><IRefresh size={16} /></Button>
         </div>
       </div>
 
@@ -204,13 +204,13 @@ export function TagsPage({ onBack, wide }: { onBack: () => void; wide: boolean }
         {loading ? (
           <div className="flex justify-center py-12"><Loader className="w-8 h-8 spinner" /></div>
         ) : err && !groups.length ? (
-          <Empty icon={<TopicIcon size={26} />} title="标签加载失败" sub={err} action="重试" onAction={load} />
+          <Empty icon={<TopicIcon size={26} />} title="태그를 불러오지 못했습니다" sub={err} action="다시 시도" onAction={load} />
         ) : groups.length ? (
           groups.map((g) => (
             <section key={g.name} className="mb-5 a-rise">
               <div className="flex items-center gap-2 mb-2.5">
                 <span className="text-[14px] font-bold text-on">{g.name}</span>
-                <span className="text-[12px] text-dim">{g.tags?.length || 0} 个</span>
+                <span className="text-[12px] text-dim">{g.tags?.length || 0}개</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {g.tags.map((t) => (
@@ -224,11 +224,11 @@ export function TagsPage({ onBack, wide }: { onBack: () => void; wide: boolean }
             </section>
           ))
         ) : (
-          <Empty icon={<TopicIcon size={26} />} title="暂无标签" />
+          <Empty icon={<TopicIcon size={26} />} title="태그가 없습니다" />
         )}
         {wide && <div className="h-2" />}
       </div>
-      {searching && <InplaceSearch kind="video" wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: "搜索 · 标签" })} />}
+      {searching && <InplaceSearch kind="video" wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: "검색 · 태그" })} />}
     </div>
   );
 }
@@ -260,8 +260,8 @@ export function TagPage({ tag, name, onBack, wide }: { tag: string; name: string
       setPages(res?.pagination?.pages || next);
       setErr("");
     } catch (e) {
-      setErr((e as Error).message || "加载失败");
-      toast((e as Error).message || "加载失败", "info");
+      setErr((e as Error).message || "불러오기 실패");
+      toast((e as Error).message || "불러오기 실패", "info");
     } finally {
       busy.current = false;
       setLoading(false);
@@ -283,10 +283,10 @@ export function TagPage({ tag, name, onBack, wide }: { tag: string; name: string
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 bg-s1" style={{ paddingTop: "var(--sat, 0px)" }}>
         <div className="px-3 pt-2 pb-3 flex items-center gap-2.5">
-          <Button aria-label="返回" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
+          <Button aria-label="뒤로" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
           <span className="text-[16px] font-bold text-on">{name}</span>
-          <span className="text-[12px] text-mut">{items.length} 部</span>
-          <Button onClick={() => setSearching(true)} aria-label="搜索短剧" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
+          <span className="text-[12px] text-mut">{items.length}편</span>
+          <Button onClick={() => setSearching(true)} aria-label="숏드라마 검색" className="ml-auto w-9 h-9 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
         </div>
       </div>
 
@@ -294,15 +294,15 @@ export function TagPage({ tag, name, onBack, wide }: { tag: string; name: string
         {loading && !items.length ? (
           <div className="flex justify-center py-12"><Loader className="w-8 h-8 spinner" /></div>
         ) : err && !items.length ? (
-          <Empty icon={<TopicIcon size={26} />} title="加载失败" sub={err} action="重试" onAction={loadMore} />
+          <Empty icon={<TopicIcon size={26} />} title="불러오기 실패" sub={err} action="다시 시도" onAction={loadMore} />
         ) : items.length ? (
           <Masonry videos={items} wide={wide} onOpen={(v) => push({ kind: "feed", videoIds: items.map((x) => x.id), index: items.findIndex((x) => x.id === v.id), title: name })} />
         ) : (
-          <Empty icon={<TopicIcon size={26} />} title="该标签下暂无内容" />
+          <Empty icon={<TopicIcon size={26} />} title="이 태그에 해당하는 콘텐츠가 없습니다" />
         )}
         <div ref={sentinel} className="h-8" />
         {loading && items.length > 0 && <div className="flex justify-center py-3"><Loader className="w-6 h-6 spinner" /></div>}
-        {!loading && items.length > 0 && page >= pages && <div className="text-center text-[12px] text-dim py-3">— 已经到底啦 —</div>}
+        {!loading && items.length > 0 && page >= pages && <div className="text-center text-[12px] text-dim py-3">— 마지막 콘텐츠입니다 —</div>}
         {wide && <div className="h-2" />}
       </div>
       {searching && <InplaceSearch kind="video" wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: name })} />}

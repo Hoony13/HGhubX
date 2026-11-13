@@ -10,7 +10,7 @@ static DEBUG_WRITER: Mutex<()> = Mutex::new(());
 fn format_utc(at: OffsetDateTime) -> Result<String, String> {
     at.to_offset(UtcOffset::UTC)
         .format(&Rfc3339)
-        .map_err(|_| "日志时间格式错误".to_string())
+        .map_err(|_| "로그 시간 형식 오류".to_string())
 }
 
 pub(crate) fn utc_timestamp() -> Result<String, String> {
@@ -18,8 +18,8 @@ pub(crate) fn utc_timestamp() -> Result<String, String> {
 }
 
 pub(crate) fn append_debug(dir: &Path, message: &str) -> Result<(), String> {
-    let _writer = DEBUG_WRITER.lock().map_err(|_| "日志锁失败")?;
-    fs::create_dir_all(dir).map_err(|_| "无法创建日志目录")?;
+    let _writer = DEBUG_WRITER.lock().map_err(|_| "로그 잠금 실패")?;
+    fs::create_dir_all(dir).map_err(|_| "로그 폴더를 만들 수 없습니다")?;
     let at = utc_timestamp()?;
     let prefix = format!("[{at}] [pid={}] ", std::process::id());
     let mut record = String::new();
@@ -38,7 +38,7 @@ pub(crate) fn append_debug(dir: &Path, message: &str) -> Result<(), String> {
         .append(true)
         .open(dir.join("debug.log"))
         .and_then(|mut f| f.write_all(record.as_bytes()))
-        .map_err(|_| "无法写入调试日志".to_string())
+        .map_err(|_| "디버그 로그를 저장할 수 없습니다".to_string())
 }
 
 #[cfg(test)]

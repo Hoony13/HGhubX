@@ -50,18 +50,18 @@ export async function flushPlaybackLog() {
     for (let i = 0; i < entries.length; i += 128) await playbackLogApi.write(entries.slice(i, i + 128));
   });
   try { await writing; }
-  catch { publish({ error: "诊断日志写入失败，请检查可用空间后重新开启" }); }
+  catch { publish({ error: "진단 로그를 저장하지 못했습니다. 여유 공간을 확인한 뒤 다시 켜 주세요" }); }
 }
 
 export function initPlaybackLog() {
   return init ??= playbackLogApi.status().then(saved => {
     publish({ ...saved, ready: true });
     tracePlayback("app.start", { version: __APP_VERSION__, platform: navigator.platform, user_agent: navigator.userAgent, hls_version: Hls.version, media_source: !!window.MediaSource, managed_media_source: "ManagedMediaSource" in window });
-  }).catch(() => { init = undefined; publish({ error: "无法读取诊断日志设置" }); });
+  }).catch(() => { init = undefined; publish({ error: "진단 로그 설정을 읽을 수 없습니다" }); });
 }
 
 export async function setPlaybackLog(on: boolean) {
-  if (!state.ready || state.pending) throw new Error("日志设置尚未就绪");
+  if (!state.ready || state.pending) throw new Error("로그 설정을 준비 중입니다");
   publish({ pending: true });
   try {
     await flushPlaybackLog();
@@ -74,7 +74,7 @@ export async function setPlaybackLog(on: boolean) {
 export async function copyPlaybackLog() {
   await flushPlaybackLog();
   const text = await playbackLogApi.read();
-  if (!text) throw new Error("尚无诊断日志，请开启后复现问题");
+  if (!text) throw new Error("진단 로그가 없습니다. 로그를 켠 뒤 문제를 재현해 주세요");
   await copyText(text);
 }
 

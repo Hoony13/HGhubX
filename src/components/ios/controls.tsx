@@ -37,7 +37,7 @@ export function SegmentedControl({ children, className, style, activeIndex, ...p
   /* The selected index lives here so segment count and indicator travel cannot drift apart. */
   /* Keep rendered segment children untouched for focus and accessibility order. */
   const segmentStyle = { ...style, "--segment-count": count, "--segment-index": index } as SegmentedStyle;
-  return <div {...props} style={segmentStyle} className={cn("ios-segmented", className)} role={props.role ?? "group"} aria-label={props["aria-label"] ?? "切换内容"}>
+  return <div {...props} style={segmentStyle} className={cn("ios-segmented", className)} role={props.role ?? "group"} aria-label={props["aria-label"] ?? "콘텐츠 전환"}>
     <span className="ios-segmented-indicator" aria-hidden="true" />
     <span className="ios-segmented-items">{segments}</span>
   </div>;

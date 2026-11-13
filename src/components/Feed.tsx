@@ -186,7 +186,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
         title: post?.title || "",
         cover: post?.cover || "",
         desc: post?.content || post?.desc || "",
-        author: "吃瓜",
+        author: "이슈",
         authorId: -1,
         tags: post?.tags || [],
         score: 0,
@@ -216,7 +216,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
   /* 分享：复制播放链接 */
   const shareLink = () => {
     const u = kind === "post" ? (posts[curId]?.video_url || meta.title) : `https://huangguoai.com/video/${curId}/`;
-    copyText(u).then(() => toast("链接已复制", "ok")).catch(() => toast("复制失败", "info"));
+    copyText(u).then(() => toast("링크를 복사했습니다", "ok")).catch(() => toast("복사 실패", "info"));
   };
 
   /* 倍速：长按 / 锁定 → 2.0x，否则用基准倍速 */
@@ -371,12 +371,12 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
           video_id: curId, episode: curEp, resolved: !!streamUrl, kind, host,
           status: raw.status ?? null, msg: String(raw.msg ?? "") || null,
         });
-        if (!streamUrl) throw new Error("暂无播放地址");
+        if (!streamUrl) throw new Error("재생 주소가 없습니다");
         setPlayUrls((m) => ({ ...m, [playKey]: streamUrl }));
         if (hevcStream) setHevcUrls((m) => ({ ...m, [playKey]: hevcStream }));
         addHistory(curId, curEp);
       })
-      .catch((e) => { if (alive) setErr((e as Error).message || "取播放地址失败"); });
+      .catch((e) => { if (alive) setErr((e as Error).message || "재생 주소를 가져오지 못했습니다"); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curId, curEp, proxyRetry]);
@@ -595,7 +595,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
       setHoldSpeed(false);
       if (!cancelled && wasLockArmed) {
         setSpeedLock(true);
-        toast("已锁定 2.0x 倍速 · 点顶部标签解除", "info");
+        toast("2.0배속 고정 · 상단 라벨을 눌러 해제", "info");
       }
       lockArmedRef.current = false;
       setLockArmed(false);
@@ -621,7 +621,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
         const want = dir === 1 ? (total === 0 || ep < total ? ep + 1 : 0) : (ep > 1 ? ep - 1 : 0);
         if (swipeEp && kind === "video" && want) {
           setEpMap((m) => ({ ...m, [curId]: want }));
-          toast(`第 ${want}集${total ? ` / ${total}` : ""}`, "info");
+          toast(`${want}화${total ? ` / ${total}` : ""}`, "info");
           try { navigator.vibrate?.(12); } catch { /* ignore */ }
           return;
         }
@@ -827,8 +827,8 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
       const v = videoRef.current?.el();
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
       else if (v && document.pictureInPictureEnabled) await v.requestPictureInPicture();
-      else toast("当前环境不支持画中画", "info");
-    } catch { toast("画中画开启失败", "info"); }
+      else toast("현재 환경에서는 화면 속 화면을 지원하지 않습니다", "info");
+    } catch { toast("화면 속 화면을 시작하지 못했습니다", "info"); }
   };
 
   const requireLogin = () => { if (!user) { setLoginOpen(true); return false; } return true; };
@@ -837,14 +837,14 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
     if (!curId) return;
     const on = toggleLikeLocal(curId);
     setHeartBurst((n) => n + 1);
-    toast(on ? "已加入喜欢" : "已取消喜欢", on ? "heart" : "info");
+    toast(on ? "좋아요를 눌렀습니다" : "좋아요를 취소했습니다", on ? "heart" : "info");
     if (requireLogin()) { if (kind === "post") api.postLike(curId, on).catch(() => {}); else api.like(curId, curEp, on).catch(() => {}); }
   };
 
   const onFav = () => {
     if (!curId) return;
     const on = toggleFavLocal(curId);
-    toast(on ? "已收藏" : "已取消收藏", on ? "star" : "info");
+    toast(on ? "즐겨찾기에 추가했습니다" : "즐겨찾기에서 삭제했습니다", on ? "star" : "info");
     if (requireLogin()) { if (kind === "post") api.postCollect(curId, on).catch(() => {}); else api.collect(curId, on).catch(() => {}); }
   };
 
@@ -852,7 +852,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
     const uid = meta.authorId > 0 ? meta.authorId : undefined;
     if (!uid) return;
     const on = toggleFollowLocal(uid);
-    toast(on ? `已关注 ${detail?.author?.name}` : "已取消关注", on ? "ok" : "info");
+    toast(on ? `팔로우: ${detail?.author?.name}` : "팔로우를 취소했습니다", on ? "ok" : "info");
     if (requireLogin()) api.follow(uid, on).catch(() => {});
   };
 
@@ -916,7 +916,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                     setErr(m);
                     if (preferHevc && hevcUrl) {
                       setPreferHevc(false);
-                      toast("高清播不了，已切回标准", "info");
+                      toast("고화질을 재생할 수 없어 일반 화질로 전환했습니다", "info");
                     }
                   }} />
                 </div>
@@ -934,7 +934,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                   <Button type="button" onClick={() => setPanel("article")}
                     className="flex items-center gap-2 h-11 px-5 rounded-full text-[14px] font-semibold pressable elev-3"
                     style={{ background: "rgba(255,255,255,.94)", color: "#0b0e15" }}>
-                    <IFileText size={17} />查看图文详情
+                    <IFileText size={17} />게시물 자세히 보기
                   </Button>
                 </div>
               )}
@@ -943,13 +943,13 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
               {!fs && !clean && mode === "context" ? (
                 isDesktop ? (
                   <div className="desktop-context-header">
-                    <Button onClick={onBack} aria-label="返回"><IBack size={17} /></Button>
+                    <Button onClick={onBack} aria-label="뒤로"><IBack size={17} /></Button>
                     <span>{title}</span>
                     <small>{index + 1} / {videoIds.length}</small>
                   </div>
                 ) : (
                   <div className="absolute inset-x-0 z-20 flex items-center gap-2 px-2.5" style={{ top: "calc(var(--sat, 0px) + 8px)", paddingRight: 132 }}>
-                    <Button onClick={onBack} aria-label="返回" className="hg-chip w-9 h-9 rounded-full flex items-center justify-center pressable elev-1"><IBack size={20} /></Button>
+                    <Button onClick={onBack} aria-label="뒤로" className="hg-chip w-9 h-9 rounded-full flex items-center justify-center pressable elev-1"><IBack size={20} /></Button>
                     <span className="text-[15px] font-semibold hg-ink hg-ov-shadow truncate">{title}</span>
                   </div>
                 )
@@ -994,12 +994,12 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                           else setPortraitFit((f) => (f === "contain" ? "cover" : "contain"));
                         }} className="whitespace-nowrap flex items-center justify-center gap-1 h-[26px] px-3 rounded-full text-[12px] font-semibold pressable transition-colors duration-150"
                           style={{ color: "rgba(255,255,255,.9)" }}>
-                          {zoom.s > 1.05 ? `还原 ${zoom.s.toFixed(1)}x` : portraitFit === "contain" ? "铺满" : "适应"}
+                          {zoom.s > 1.05 ? `복원 ${zoom.s.toFixed(1)}x` : portraitFit === "contain" ? "화면 채우기" : "화면에 맞추기"}
                         </Button>
                         <Button type="button" onClick={() => enterFs(true)}
                           className="whitespace-nowrap flex items-center justify-center gap-1 h-[26px] px-3 rounded-full text-[12px] font-semibold pressable transition-colors duration-150"
                           style={{ color: "rgba(255,255,255,.9)" }}>
-                          <IExpand size={13} /><span>横屏</span>
+                          <IExpand size={13} /><span>가로 화면</span>
                         </Button>
                       </>
                     )}
@@ -1008,7 +1008,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                         <Button type="button" onClick={() => setZoom({ s: 1, x: 0, y: 0, g: false })}
                           className="whitespace-nowrap flex items-center justify-center gap-1 h-[26px] px-3 rounded-full text-[12px] font-semibold pressable transition-colors duration-150"
                           style={{ color: "rgba(255,255,255,.9)" }}>
-                          还原 {zoom.s.toFixed(1)}x
+                          복원 {zoom.s.toFixed(1)}x
                         </Button>
                       </>
                     )}
@@ -1021,34 +1021,34 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                 <div className="absolute right-3 z-20 flex flex-col items-center gap-[16px]"
                   style={{ bottom: `calc(var(--sab, 0px) + ${bottomInset + 92}px)` }}>
                   {episodes.length > 1 && (
-                    <Button type="button" onClick={() => { setSwipeEp(!swipeEp); toast(swipeEp ? "上下划切集已关闭" : "上下划切集已开启"); }}
-                      className="flex flex-col items-center gap-1 pressable" aria-pressed={swipeEp} aria-label="上下划切集开关">
+                    <Button type="button" onClick={() => { setSwipeEp(!swipeEp); toast(swipeEp ? "위아래 스와이프로 회차 변경 끔" : "위아래 스와이프로 회차 변경 켬"); }}
+                      className="flex flex-col items-center gap-1 pressable" aria-pressed={swipeEp} aria-label="스와이프 회차 변경 설정">
                       <IVertSwap size={26} className={swipeEp ? "hg-gold hg-ov-shadow" : "hg-ink hg-ov-shadow"} />
-                      <span className="text-[12px] hg-ov-shadow" style={{ color: swipeEp ? "#f3c969" : undefined }}>切集</span>
+                      <span className="text-[12px] hg-ov-shadow" style={{ color: swipeEp ? "#f3c969" : undefined }}>회차 변경</span>
                     </Button>
                   )}
                   {hevcUrl && (
-                    <Button type="button" onClick={() => { setPreferHevc(!preferHevc); toast(preferHevc ? "已切回标准画质" : "已切换高清 HEVC", "ok"); }}
-                      className="flex flex-col items-center gap-1 pressable" aria-pressed={preferHevc} aria-label="画质切换">
-                      <span className={`flex items-center justify-center h-[22px] min-w-[30px] px-1 rounded-md text-[12px] font-bold hg-ov-shadow ${preferHevc ? "bg-primary text-on-primary" : "hg-chip hg-ink-2"}`}>{preferHevc ? "HD" : "标清"}</span>
-                      <span className="text-[12px] hg-ov-shadow" style={{ color: preferHevc ? "#fff" : undefined }}>{preferHevc ? "高清" : "标清"}</span>
+                    <Button type="button" onClick={() => { setPreferHevc(!preferHevc); toast(preferHevc ? "일반 화질로 전환했습니다" : "HEVC 고화질로 전환했습니다", "ok"); }}
+                      className="flex flex-col items-center gap-1 pressable" aria-pressed={preferHevc} aria-label="화질 변경">
+                      <span className={`flex items-center justify-center h-[22px] min-w-[30px] px-1 rounded-md text-[12px] font-bold hg-ov-shadow ${preferHevc ? "bg-primary text-on-primary" : "hg-chip hg-ink-2"}`}>{preferHevc ? "HD" : "일반 화질"}</span>
+                      <span className="text-[12px] hg-ov-shadow" style={{ color: preferHevc ? "#fff" : undefined }}>{preferHevc ? "고화질" : "일반 화질"}</span>
                     </Button>
                   )}
-                  <Button onClick={onFav} className="flex flex-col items-center gap-1 pressable" aria-pressed={isFav(curId)} aria-label="收藏">
+                  <Button onClick={onFav} className="flex flex-col items-center gap-1 pressable" aria-pressed={isFav(curId)} aria-label="즐겨찾기">
                     {isFav(curId) ? <IStarF size={27} className="hg-gold" /> : <IStar size={27} className="hg-ink hg-ov-shadow" />}
-                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">收藏</span>
+                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">즐겨찾기</span>
                   </Button>
-                  <Button onClick={() => setPanel("comments")} className="flex flex-col items-center gap-1 pressable" aria-label="评论">
+                  <Button onClick={() => setPanel("comments")} className="flex flex-col items-center gap-1 pressable" aria-label="댓글">
                     <ICommentF size={26} className="hg-ink hg-ov-shadow" />
-                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">评论</span>
+                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">댓글</span>
                   </Button>
-                  <Button onClick={() => enterFs(isLandscapeCurrent())} className="flex flex-col items-center gap-1 pressable" aria-label="全屏">
+                  <Button onClick={() => enterFs(isLandscapeCurrent())} className="flex flex-col items-center gap-1 pressable" aria-label="전체 화면">
                     <IExpand size={26} className="hg-ink hg-ov-shadow" />
-                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">全屏</span>
+                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">전체 화면</span>
                   </Button>
-                  <Button onClick={shareLink} className="flex flex-col items-center gap-1 pressable" aria-label="分享">
+                  <Button onClick={shareLink} className="flex flex-col items-center gap-1 pressable" aria-label="공유">
                     <ILink size={25} className="hg-ink hg-ov-shadow" />
-                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">分享</span>
+                    <span className="text-[12px] hg-ink-2 hg-ov-shadow">공유</span>
                   </Button>
                 </div>
               )}
@@ -1057,10 +1057,10 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
               {!fs && !clean && isDesktop && (
               <div className="absolute z-20 flex flex-col items-center desktop-social">
                 <div className="desktop-browse-inline">
-                  <Button onClick={() => stepDir(-1)} disabled={!canStep(-1)} aria-label="上一个" title="上一个 ↑">
+                  <Button onClick={() => stepDir(-1)} disabled={!canStep(-1)} aria-label="이전" title="이전 ↑">
                     <IChevronUp size={19} strokeWidth={1.8} />
                   </Button>
-                  <Button onClick={() => stepDir(1)} disabled={!canStep(1)} aria-label="下一个" title="下一个 ↓">
+                  <Button onClick={() => stepDir(1)} disabled={!canStep(1)} aria-label="다음" title="다음 ↓">
                     <IChevronDown size={19} strokeWidth={1.8} />
                   </Button>
                   <small>{String(index + 1).padStart(2, "0")} / {String(videoIds.length).padStart(2, "0")}</small>
@@ -1068,33 +1068,33 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
 
                 {kind === "video" && (
                   <>
-                    <Button onClick={onLike} aria-label="点赞" className="flex flex-col items-center gap-1 pressable" aria-pressed={isLiked(curId)}>
+                    <Button onClick={onLike} aria-label="좋아요" className="flex flex-col items-center gap-1 pressable" aria-pressed={isLiked(curId)}>
                       <span key={heartBurst} className={heartBurst ? "a-pop" : ""}>
                         {isLiked(curId) ? <IHeartF size={30} className="text-neon" /> : <IHeart size={30} className="text-white tsh" />}
                       </span>
                       <span className="text-[12px] text-white/90 tabular-nums">{fmt(likeCount)}</span>
                     </Button>
 
-                    <Button onClick={() => setPanel("comments")} aria-label="评论" className="flex flex-col items-center gap-1 pressable">
+                    <Button onClick={() => setPanel("comments")} aria-label="댓글" className="flex flex-col items-center gap-1 pressable">
                       <ICommentF size={27} className="text-white tsh" />
                       <span className="text-[12px] text-white/90 tabular-nums">{fmt(meta.comment)}</span>
                     </Button>
 
-                    <Button onClick={onFav} aria-label="收藏" className="flex flex-col items-center gap-1 pressable" aria-pressed={isFav(curId)}>
+                    <Button onClick={onFav} aria-label="즐겨찾기" className="flex flex-col items-center gap-1 pressable" aria-pressed={isFav(curId)}>
                       {isFav(curId) ? <IStarF size={27} className="hg-gold" /> : <IStar size={27} className="hg-ink hg-ov-shadow" />}
                       <span className="text-[12px] text-white/90 tabular-nums">{fmt(meta.collect)}</span>
                     </Button>
 
-                    <Button onClick={() => setPanel("episodes")} aria-label="选集" className="flex flex-col items-center gap-1 pressable">
+                    <Button onClick={() => setPanel("episodes")} aria-label="회차 선택" className="flex flex-col items-center gap-1 pressable">
                       <IList size={26} className="text-white tsh" />
-                      <span className="text-[12px] text-white/90">选集</span>
+                      <span className="text-[12px] text-white/90">회차 선택</span>
                     </Button>
                   </>
                 )}
 
-                <Button onClick={shareLink} aria-label="分享" className="flex flex-col items-center gap-1 pressable">
+                <Button onClick={shareLink} aria-label="공유" className="flex flex-col items-center gap-1 pressable">
                   <ILink size={25} className="text-white tsh" />
-                  <span className="text-[12px] text-white/90">分享</span>
+                  <span className="text-[12px] text-white/90">공유</span>
                 </Button>
               </div>
               )}
@@ -1107,18 +1107,18 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                   {episodes.length > 0 && (
                     <span className="shrink-0 px-1.5 py-px rounded-md text-[12px] font-bold text-white"
                       style={{ background: "rgba(255,255,255,.16)" }}>
-                      第 {curEp}/{episodes.length} 集
+                      {curEp}/{episodes.length} 화
                     </span>
                   )}
                    {hevcUrl && (
                      <Button type="button" aria-pressed={preferHevc}
-                       onClick={() => { setPreferHevc(!preferHevc); toast(preferHevc ? "已切回标准画质" : "已切换高清 HEVC", "ok"); }}
+                       onClick={() => { setPreferHevc(!preferHevc); toast(preferHevc ? "일반 화질로 전환했습니다" : "HEVC 고화질로 전환했습니다", "ok"); }}
                        className={`shrink-0 h-[18px] px-1.5 rounded-md text-[12px] font-bold flex items-center pressable transition-colors ${preferHevc ? "bg-primary text-on-primary" : "text-white border border-white/30"}`}>
-                       {preferHevc ? "HD" : "标清"}
+                       {preferHevc ? "HD" : "일반 화질"}
                      </Button>
                    )}
                    {!!meta.score && (
-                  <span className="shrink-0 text-[12px] font-bold hg-gold hg-ov-shadow">{meta.score.toFixed(1)} 分</span>
+                  <span className="shrink-0 text-[12px] font-bold hg-gold hg-ov-shadow">{meta.score.toFixed(1)}점</span>
                   )}
                 </div>
 
@@ -1127,9 +1127,9 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                 {/* 描述（单行，点开展开） */}
                 <Button onClick={() => setDescOpen((v) => !v)} className="mt-1 text-left w-full pressable group">
                   <p className={`text-[12px] leading-relaxed hg-ink-4 ${descOpen ? "" : "clamp-1"}`}>
-                    {meta.desc || "暂无简介"}
+                    {meta.desc || "소개가 없습니다"}
                   </p>
-                  <span className="text-[12px] hg-link font-semibold">{descOpen ? "收起" : "展开简介"}</span>
+                  <span className="text-[12px] hg-link font-semibold">{descOpen ? "접기" : "소개 펼치기"}</span>
                 </Button>
               </div>
               )}
@@ -1145,7 +1145,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                   <div className="relative pt-1.5 pb-2.5">
                     <Button onClick={() => setPanel("detail")}
                       className="px-4 flex items-center gap-0.5 text-[12px] font-medium hg-ink-3 hg-ov-shadow-strong pressable">
-                      详情 · 第 {curEp} 集<IChevR size={11} />
+                      상세 · {curEp}화<IChevR size={11} />
                     </Button>
                     <div ref={barRef} className="mx-4 mt-2 relative" style={{ height: 14, touchAction: "none" }}
                       onPointerDown={onBarDown} onPointerMove={onBarMove} onPointerUp={onBarUp} onPointerCancel={onBarUp}>
@@ -1199,9 +1199,9 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
               {isActive && err && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center">
                   <div className="rounded-xl p-5 flex flex-col items-center gap-3 text-[14px] hg-ink-2" style={{ background: "rgba(0,0,0,.7)" }}>
-                    <span>视频暂时无法加载</span>
+                    <span>지금은 영상을 불러올 수 없습니다</span>
                     <span className="text-[12px] hg-ink-4 max-w-[240px] text-center break-all">{err}</span>
-                    <Button className="hg-link text-[14px]" onClick={() => { setErr(""); setWaiting(true); videoRef.current?.play(); }}>重试</Button>
+                    <Button className="hg-link text-[14px]" onClick={() => { setErr(""); setWaiting(true); videoRef.current?.play(); }}>다시 시도</Button>
                   </div>
                 </div>
               )}
@@ -1220,9 +1220,9 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
           seekEnabled={active && !controlsLocked}
           seekKey={playKey}
           nextDisabled={!episodes.some((e) => e.ep_num === curEp + 1) && index >= videoIds.length - 1}
-          nextTitle={episodes.some((e) => e.ep_num === curEp + 1) ? "下一集 E" : "下一部 ↓"}
+          nextTitle={episodes.some((e) => e.ep_num === curEp + 1) ? "다음 화 E" : "다음 작품 ↓"}
           swipeEp={swipeEp}
-          onToggleSwipe={() => { setSwipeEp(!swipeEp); toast(swipeEp ? "上下划切集已关闭" : "上下划切集已开启"); }}
+          onToggleSwipe={() => { setSwipeEp(!swipeEp); toast(swipeEp ? "위아래 스와이프로 회차 변경 끔" : "위아래 스와이프로 회차 변경 켬"); }}
           onToggle={() => videoRef.current?.toggle()}
           onSeek={(t, source) => { videoRef.current?.seek(t, source); playbackClock.publish(t); }}
           onSeekInteraction={(phase, input, target, pointerTarget) => videoRef.current?.trace(`seek.input.${phase}`, { input, target, pointer_target: pointerTarget })}
@@ -1245,13 +1245,13 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
       {!isDesktop && (holdSpeed || speedLock || rate !== 1) && (!fs || !idle) && (
         <Button
           onClick={() => {
-            if (speedLock) { setSpeedLock(false); toast("已解除倍速锁定", "info"); }
+            if (speedLock) { setSpeedLock(false); toast("배속 고정을 해제했습니다", "info"); }
             else if (rate !== 1 && !holdSpeed) setRate(1);
           }}
           className={`absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3.5 h-8 rounded-full backdrop-blur-md text-[13px] font-bold elev-2 pressable ${speedLock ? "bg-primary text-on-primary" : "hg-chip hg-gold"}`}
           style={{ top: "calc(var(--sat, 0px) + 54px)" }}>
           <IBoltF size={13} />
-          {effRate}x {speedLock ? "已锁定 · 点按解除" : holdSpeed ? "倍速中 · 松开恢复" : "倍速"}
+          {effRate}x {speedLock ? "고정됨 · 눌러서 해제" : holdSpeed ? "배속 재생 중 · 손을 떼면 복원" : "배속"}
         </Button>
       )}
       {!isDesktop && holdSpeed && (
@@ -1259,7 +1259,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
           className={`absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 h-10 rounded-xl backdrop-blur-md elev-2 ${lockArmed ? "bg-primary text-on-primary" : "hg-chip-strong hg-ink-2"}`}
           style={{ top: "38%" }}>
           <ILockF size={16} />
-          <span className="text-[14px] font-bold">{lockArmed ? "松开锁定 2.0x" : "上滑到此锁定倍速"}</span>
+          <span className="text-[14px] font-bold">{lockArmed ? "손을 떼면 2.0배속 고정" : "여기까지 위로 밀면 배속 고정"}</span>
         </div>
       )}
 
@@ -1285,7 +1285,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
       {/* 移动端：沉浸全屏（安卓 WebView 不支持 Fullscreen API，改用应用内沉浸层） */}
       {!isDesktop && fs && !idle && (
         <>
-          <Button onClick={exitFs} aria-label="退出全屏"
+          <Button onClick={exitFs} aria-label="전체 화면 종료"
             className="hg-chip-strong absolute z-40 w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center pressable elev-1"
             style={{
               top: rotated ? 12 : "calc(var(--sat, 0px) + 6px)",
@@ -1317,8 +1317,8 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
             {curEp < episodes.length && (
               <Button onClick={() => pickEp(curEp + 1)}
                 className="shrink-0 flex items-center gap-1 px-2.5 h-8 rounded-full text-[13px] font-semibold hg-chip hg-ink-2 pressable"
-                aria-label={`下一集 第${curEp + 1}集`}>
-                <IVertSwap size={12} />下集
+                aria-label={`다음 화: ${curEp + 1}화`}>
+                <IVertSwap size={12} />다음 화
               </Button>
             )}
             <span className="shrink-0 text-[12px] hg-ink-4 tabular-nums">{fmtTime(duration)}</span>
@@ -1357,12 +1357,12 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
             <div className="flex flex-col" style={{ height: "72vh" }}>
               {/* 双栏抽屉：详情 / 选集 */}
               <div className="shrink-0 flex items-center gap-2 px-4 pb-2">
-                <SegmentedControl className="flex-1" aria-label="剧集面板" activeIndex={panel === "detail" ? 0 : 1}>
-                  {([["detail", "详情"], ["episodes", "选集"]] as const).map(([k, l]) => (
+                <SegmentedControl className="flex-1" aria-label="회차 패널" activeIndex={panel === "detail" ? 0 : 1}>
+                  {([["detail", "상세"], ["episodes", "회차 선택"]] as const).map(([k, l]) => (
                     <Button aria-pressed={panel === k} key={k} onClick={() => setPanel(k)}>{l}</Button>
                   ))}
                 </SegmentedControl>
-                <Button onClick={() => setPanel(null)} aria-label="关闭"
+                <Button onClick={() => setPanel(null)} aria-label="닫기"
                   className="ios-icon-button">
                   <IClose size={14} />
                 </Button>
@@ -1381,13 +1381,13 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                       <div className="flex-1 min-w-0">
                         <div className="text-[14px] font-bold text-on leading-snug clamp-2">{meta.title}</div>
                         <div className="flex items-center gap-2 mt-1.5">
-                          {!!meta.score && <span className="text-[13px] font-bold text-amber">{meta.score.toFixed(1)} 分</span>}
-                          {episodes.length > 0 && <span className="text-[12px] text-mut">共 {episodes.length} 集</span>}
+                          {!!meta.score && <span className="text-[13px] font-bold text-amber">{meta.score.toFixed(1)}점</span>}
+                          {episodes.length > 0 && <span className="text-[12px] text-mut">총 {episodes.length}화</span>}
                         </div>
                         <div className="flex gap-3 mt-2 text-[12px] text-mut">
-                          <span>点赞 {fmt(meta.like)}</span>
-                          <span>收藏 {fmt(meta.collect)}</span>
-                          <span>评论 {fmt(meta.comment)}</span>
+                          <span>좋아요 {fmt(meta.like)}</span>
+                          <span>즐겨찾기 {fmt(meta.collect)}</span>
+                          <span>댓글 {fmt(meta.comment)}</span>
                         </div>
                       </div>
                     </div>
@@ -1401,13 +1401,13 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                         <Avatar size={34} name={meta.author} hue={220} />
                         <div className="flex-1 min-w-0">
                           <div className="text-[14px] font-semibold text-on truncate">{meta.author}</div>
-                          <div className="text-[12px] text-mut">作者</div>
+                          <div className="text-[12px] text-mut">작성자</div>
                         </div>
                       </Button>
                       {meta.authorId > 0 && (
                         <Button onClick={onFollow}
                           className={`h-7 px-3 rounded-full text-[12px] font-semibold pressable shrink-0 ${store.follows.includes(meta.authorId) ? "bg-s3 text-mut" : "bg-primary text-on-primary"}`}>
-                          {store.follows.includes(meta.authorId) ? "已关注" : "+ 关注"}
+                          {store.follows.includes(meta.authorId) ? "팔로잉" : "+ 팔로우"}
                         </Button>
                       )}
                     </Surface>
@@ -1415,10 +1415,10 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
                     {/* 相关推荐 */}
                     {related.length > 0 && (
                       <div className="mt-4">
-                        <div className="text-[12px] font-semibold text-dim mb-2">相关推荐</div>
+                        <div className="text-[12px] font-semibold text-dim mb-2">관련 추천</div>
                         <div className="scroll-x flex gap-2.5 snap-x">
                           {related.slice(0, 12).map((v) => (
-                            <RowCard key={v.id} v={v} onOpen={() => store.push({ kind: "feed", videoIds: related.map((x) => x.id), index: related.findIndex((x) => x.id === v.id), title: "相关推荐" })} />
+                            <RowCard key={v.id} v={v} onOpen={() => store.push({ kind: "feed", videoIds: related.map((x) => x.id), index: related.findIndex((x) => x.id === v.id), title: "관련 추천" })} />
                           ))}
                         </div>
                       </div>
@@ -1426,8 +1426,8 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
 
                     {/* 简介 */}
                     <div className="mt-4">
-                      <div className="text-[12px] font-semibold text-dim mb-1.5">简介</div>
-                      <p className="text-[12px] leading-relaxed text-mut whitespace-pre-wrap">{meta.desc || "暂无简介"}</p>
+                      <div className="text-[12px] font-semibold text-dim mb-1.5">소개</div>
+                      <p className="text-[12px] leading-relaxed text-mut whitespace-pre-wrap">{meta.desc || "소개가 없습니다"}</p>
                     </div>
                   </div>
                 )}
@@ -1443,13 +1443,13 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
             top: rotated ? 12 : "calc(var(--sat, 0px) + 6px)",
             right: fs ? (rotated ? "calc(var(--sab, 0px) + 56px)" : 56) : undefined,
           }}>
-          {!fs && !clean && <Button onClick={() => setMuted(m => !m)} aria-label={muted ? "取消静音" : "静音"}
+          {!fs && !clean && <Button onClick={() => setMuted(m => !m)} aria-label={muted ? "음소거 해제" : "음소거"}
             className="hg-chip w-9 h-9 rounded-full flex items-center justify-center pressable elev-1">
             {muted ? <IVolMute size={17} /> : <IVol size={17} />}
           </Button>}
-          <Button onClick={lockControls} aria-label="锁定播放控制" title="锁定播放控制" aria-pressed={false}
+          <Button onClick={lockControls} aria-label="재생 컨트롤 잠금" title="재생 컨트롤 잠금" aria-pressed={false}
             className="hg-chip w-9 h-9 rounded-full flex items-center justify-center pressable elev-1"><ILockF size={17} /></Button>
-          {!fs && !clean && <Button onClick={() => store.setTab("search")} aria-label="搜索"
+          {!fs && !clean && <Button onClick={() => store.setTab("search")} aria-label="검색"
             className="hg-chip w-9 h-9 rounded-full flex items-center justify-center pressable elev-1"><ISearch size={18} /></Button>}
         </div>
       )}

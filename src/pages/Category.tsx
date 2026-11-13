@@ -11,9 +11,9 @@ import { Empty, Img } from "../components/ui";
 import { IBack, IChevR, IGlobe, IGrid, ISearch, ITrophy } from "../icons";
 
 export const CHANNELS = [
-  { cate: "ai-duanju", name: "AI成人短剧", desc: "高能反转 · 一口气看完" },
-  { cate: "ai-manju", name: "AI成人漫剧", desc: "国创漫剧 · 每周更新" },
-  { cate: "original", name: "原创", desc: "原创 · 独家好剧" },
+  { cate: "ai-duanju", name: "AI 성인 숏드라마", desc: "반전의 연속 · 정주행 추천" },
+  { cate: "ai-manju", name: "AI 성인 애니메이션", desc: "중국 오리지널 애니메이션 · 매주 업데이트" },
+  { cate: "original", name: "오리지널", desc: "오리지널 · 독점 작품" },
 ] as const;
 
 /* ================= 分类总览 ================= */
@@ -55,7 +55,7 @@ export default function Category({ wide, active }: { wide: boolean; active: bool
       }
     } catch (error) {
       const stale = requestEpoch !== lineEpochRef.current;
-      if (mounted.current && !stale) setErrors(m => ({ ...m, [key]: (error as Error).message || "加载失败" }));
+      if (mounted.current && !stale) setErrors(m => ({ ...m, [key]: (error as Error).message || "불러오기 실패" }));
       /* 请求在旧线路上发出、期间线路已切换：等 finally 里用新线路补拉一次 */
       if (stale) retryKeys.current.add(key);
     } finally {
@@ -84,23 +84,23 @@ export default function Category({ wide, active }: { wide: boolean; active: bool
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="ios-page-heading shrink-0 px-4">
         <div className="flex items-end gap-2.5">
-          <span className="ios-page-title text-on">分类</span>
-          <span className="text-[12px] text-mut pb-0.5">{CHANNELS.length + 1} 个频道 · 每周持续上新</span>
+          <span className="ios-page-title text-on">카테고리</span>
+          <span className="text-[12px] text-mut pb-0.5">{CHANNELS.length + 1}개 채널 · 매주 새 콘텐츠</span>
         </div>
       </div>
 
       <div className="flex-1 scroll-y pb-24 pt-2">
         {/* 排行榜入口：只在移动端显示（底部导航没有排行榜，桌面侧栏已有） */}
         {!wide && (
-          <CollectionLink icon={<ITrophy size={18} />} title="排行榜" subtitle="热播榜 · 推荐榜 · 潜力榜"
+          <CollectionLink icon={<ITrophy size={18} />} title="순위" subtitle="인기 순위 · 추천 순위 · 기대작 순위"
             onClick={() => push({ kind: "ranks" })} className="mx-4 mb-2.5 w-[calc(100%-2rem)]" />
         )}
 
         {/* 专题 + 标签入口 */}
         <CollectionLinks className="ios-category-links mx-4 mb-5">
-          <CollectionLink icon={<IGrid size={18} />} title="专题" subtitle="精选专辑合集"
+          <CollectionLink icon={<IGrid size={18} />} title="컬렉션" subtitle="엄선한 작품 모음"
             onClick={() => push({ kind: "topics" })} />
-          <CollectionLink icon={<IGlobe size={18} />} title="标签" subtitle="按题材找片"
+          <CollectionLink icon={<IGlobe size={18} />} title="태그" subtitle="장르별 작품 찾기"
             onClick={() => push({ kind: "tags" })} />
         </CollectionLinks>
 
@@ -118,7 +118,7 @@ export default function Category({ wide, active }: { wide: boolean; active: bool
                   <span className="block text-[12px] text-mut mt-0.5 truncate">{c.desc}</span>
                 </span>
                 <span className="flex items-center gap-0.5 text-[12px] text-mut group-hover:text-primary transition-colors">
-                  全部<IChevR size={14} />
+                  전체<IChevR size={14} />
                 </span>
               </Button>
               <div className="scroll-x flex gap-2.5 px-4 snap-x">
@@ -132,30 +132,30 @@ export default function Category({ wide, active }: { wide: boolean; active: bool
         })}
 
         {/* 吃瓜 */}
-        <section aria-label="吃瓜" className="mb-5 a-rise">
+        <section aria-label="이슈" className="mb-5 a-rise">
           <Button onClick={() => push({ kind: "posts" })}
             className="w-full flex items-center gap-2.5 px-4 mb-2.5 text-left pressable group">
             <span className="w-[36px] h-[36px] rounded-(--r-sm) tonal flex items-center justify-center shrink-0 text-primary">
               <IGrid size={19} strokeWidth={1.9} />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[15.5px] font-semibold text-on leading-tight">吃瓜</span>
-              <span className="block text-[12px] text-mut mt-0.5 truncate">圈内爆料 · 每日更新</span>
+              <span className="block text-[15.5px] font-semibold text-on leading-tight">이슈</span>
+              <span className="block text-[12px] text-mut mt-0.5 truncate">화제의 소식 · 매일 업데이트</span>
             </span>
             <span className="flex items-center gap-0.5 text-[12px] text-mut group-hover:text-primary transition-colors">
-              全部<IChevR size={14} />
+              전체<IChevR size={14} />
             </span>
           </Button>
           <div className="scroll-x flex gap-2.5 px-4 snap-x">
             {posts.map((post) => (
               <div key={post.id} className="ios-row-card"><MediaCard title={post.title} cover={post.cover}
-                subtitle={`${fmt(post.hot)} 次浏览`} onOpen={() => push({ kind: "post", id: post.id })} /></div>
+                subtitle={`${fmt(post.hot)}회 조회`} onOpen={() => push({ kind: "post", id: post.id })} /></div>
             ))}
-            {!posts.length && <PreviewStatus name="吃瓜" loading={loading.posts !== false} error={errors.posts} onRetry={() => void loadPreview("posts")} />}
+            {!posts.length && <PreviewStatus name="이슈" loading={loading.posts !== false} error={errors.posts} onRetry={() => void loadPreview("posts")} />}
           </div>
         </section>
 
-        <div className="px-4 text-center text-[12px] text-dim pt-1">— 已展示全部频道 —</div>
+        <div className="px-4 text-center text-[12px] text-dim pt-1">— 모든 채널을 표시했습니다 —</div>
       </div>
       {wide && <div />}
     </div>
@@ -164,22 +164,22 @@ export default function Category({ wide, active }: { wide: boolean; active: bool
 
 function PreviewStatus({ name, loading, error, onRetry }: { name: string; loading: boolean; error?: string; onRetry: () => void }) {
   return <div className="h-[150px] flex flex-col justify-center items-start gap-2 text-[12px] text-dim px-1">
-    <span>{loading ? "加载中…" : error || "暂无内容"}</span>
-    {!loading && error && <Button aria-label={`重试${name}`} onClick={onRetry} className="text-primary pressable">重试</Button>}
+    <span>{loading ? "불러오는 중…" : error || "콘텐츠가 없습니다"}</span>
+    {!loading && error && <Button aria-label={`다시 시도${name}`} onClick={onRetry} className="text-primary pressable">다시 시도</Button>}
   </div>;
 }
 
 /* ================= 频道详情页 ================= */
 const CHANNEL_SORTS = [
-  { value: "latest", label: "最近更新" },
-  { value: "hot_window", label: "当前热播" },
-  { value: "random", label: "精选推荐" },
+  { value: "latest", label: "최근 업데이트" },
+  { value: "hot_window", label: "지금 인기 있는 작품" },
+  { value: "random", label: "추천 작품" },
 ] as const;
 
 const ORIGINAL_CATES = [
-  { value: "all", label: "全部原创" },
-  { value: "ai-manju", label: "原创漫剧" },
-  { value: "ai-duanju", label: "原创短剧" },
+  { value: "all", label: "모든 오리지널" },
+  { value: "ai-manju", label: "오리지널 애니메이션" },
+  { value: "ai-duanju", label: "오리지널 숏드라마" },
 ] as const;
 
 const originalSort = (cate: (typeof ORIGINAL_CATES)[number]["value"]) =>
@@ -221,7 +221,7 @@ export function ChannelPage({ cate, name, onBack, wide }: { cate: string; name: 
       setPages(res?.pagination?.pages || next);
       setErr(null);
     } catch (e) {
-      if (seq === requestSeq.current) setErr((e as Error).message || "加载失败");
+      if (seq === requestSeq.current) setErr((e as Error).message || "불러오기 실패");
     } finally {
       if (seq === requestSeq.current) {
         busy.current = false;
@@ -266,13 +266,13 @@ export function ChannelPage({ cate, name, onBack, wide }: { cate: string; name: 
     <div className="ios-page absolute inset-0 bg-bg flex flex-col">
       <div className="shrink-0 bg-s1" style={{ paddingTop: "var(--sat, 0px)" }}>
         <div className="px-3 pt-2 pb-3 flex items-center gap-2.5">
-          <Button aria-label="返回" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
+          <Button aria-label="뒤로" onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><IBack size={20} /></Button>
           <span className="w-[40px] h-[40px] rounded-(--r-sm) bg-pc text-on-pc flex items-center justify-center"><IGrid size={21} strokeWidth={1.9} /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[17px] font-bold text-on leading-tight">{name}</div>
-            <div className="text-[12px] text-mut">共 {items.length} 部 · 已加载 {page}/{Math.max(pages, 1)} 页</div>
+            <div className="text-[12px] text-mut">총 {items.length}편 · 불러온 페이지: {page}/{Math.max(pages, 1)}페이지</div>
           </div>
-          <Button onClick={() => setSearching(true)} aria-label={cate === "original" ? "搜索原创" : "搜索短剧"} className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
+          <Button onClick={() => setSearching(true)} aria-label={cate === "original" ? "오리지널 검색" : "숏드라마 검색"} className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-on hover:bg-s3 pressable"><ISearch size={19} /></Button>
         </div>
         {cate === "original" && (
           <div className="px-4 pb-2 flex flex-wrap gap-2">
@@ -295,17 +295,17 @@ export function ChannelPage({ cate, name, onBack, wide }: { cate: string; name: 
         {items.length ? (
           <Masonry videos={items} wide={wide} onOpen={(v) => push({ kind: "feed", videoIds: items.map((x) => x.id), index: items.findIndex((x) => x.id === v.id), title: name })} />
         ) : err ? (
-          <Empty icon={<IGrid size={26} />} title="加载失败" sub={err} action="重试" onAction={() => void loadMore(true)} />
+          <Empty icon={<IGrid size={26} />} title="불러오기 실패" sub={err} action="다시 시도" onAction={() => void loadMore(true)} />
         ) : (
           <div className="flex justify-center py-10"><Loader className="w-8 h-8 spinner" /></div>
         )}
         <div ref={sentinel} className="h-10" />
         {loading && <div className="flex justify-center py-3"><Loader className="w-6 h-6 spinner" /></div>}
         {!loading && page >= pages && items.length > 0 && (
-          <div className="text-center text-[12px] text-dim py-3">— 已经到底啦 —</div>
+          <div className="text-center text-[12px] text-dim py-3">— 마지막 콘텐츠입니다 —</div>
         )}
       </div>
-      {searching && <InplaceSearch kind="video" scope={cate === "original" ? "original" : undefined} wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: `搜索 · ${name}` })} />}
+      {searching && <InplaceSearch kind="video" scope={cate === "original" ? "original" : undefined} wide={wide} onClose={() => setSearching(false)} onOpenVideo={(v, list) => push({ kind: "feed", videoIds: list.map((x) => x.id), index: list.findIndex((x) => x.id === v.id), title: `검색 · ${name}` })} />}
     </div>
   );
 }

@@ -24,13 +24,13 @@ import { IGrid, IGridF, IHome, IHomeF, ISearch, IUser, IUserF, Logo } from "./ic
 function TabBar() {
   const { tab, setTab, platform } = useStore();
   const items = [
-    { key: "home", label: "首页", Icon: IHome, Active: IHomeF },
-    { key: "search", label: "搜索", Icon: ISearch, Active: ISearch },
-    { key: "category", label: "分类", Icon: IGrid, Active: IGridF },
-    { key: "profile", label: "我的", Icon: IUser, Active: IUserF },
+    { key: "home", label: "홈", Icon: IHome, Active: IHomeF },
+    { key: "search", label: "검색", Icon: ISearch, Active: ISearch },
+    { key: "category", label: "카테고리", Icon: IGrid, Active: IGridF },
+    { key: "profile", label: "마이페이지", Icon: IUser, Active: IUserF },
   ] as const;
   const index = items.findIndex(item => item.key === tab);
-  return <nav className="hg-tabbar ios-mobile-nav" aria-label="主导航" data-over-video={tab === "home"}
+  return <nav className="hg-tabbar ios-mobile-nav" aria-label="주 메뉴" data-over-video={tab === "home"}
     style={{ paddingBottom: platform === "android" ? "var(--sab, 16px)" : "calc(var(--sab, 16px) * .55)" }}>
       <div className="hg-glass">
       <div className="hg-drop" aria-hidden="true" style={{ transform: `translateX(${index * 100}%)` }}><LiquidIndicator /></div>

@@ -57,7 +57,7 @@ try {
           if (command === "playback_log_status") return { enabled: false, path: "fixture.log", error: null };
           if (command === "proxy_state") return { mode: "system", url: "", effective: null, system_proxy: false, env_proxy: false };
           if (command === "line_state") return { base: fixture.base, default: MAIN, fixed: [
-            { name: "固定线路 1", url: MAIN }, { name: "固定线路 2", url: "https://secondary.fixture.invalid" },
+            { name: "고정 서버 1", url: MAIN }, { name: "고정 서버 2", url: "https://secondary.fixture.invalid" },
           ] };
           if (command === "line_mirrors") {
             if (fixture.failMirrors) throw "fixture: mirror publisher unavailable";
@@ -100,7 +100,7 @@ try {
   }
 
   const calls = (page, command) => page.evaluate(command => window.lineSelectionFixture.calls.filter(call => call.command === command), command);
-  const sourceButton = page => page.getByRole("button").filter({ has: page.getByText("播放源", { exact: true }) });
+  const sourceButton = page => page.getByRole("button").filter({ has: page.getByText("재생 서버", { exact: true }) });
 
   {
     const { context, page } = await open({ "hg.autoLine": "off" });
@@ -135,7 +135,7 @@ try {
     await sourceButton(page).click();
     const dialog = page.getByRole("dialog");
     await dialog.waitFor();
-    await dialog.getByText("固定线路 2", { exact: true }).waitFor();
+    await dialog.getByText("고정 서버 2", { exact: true }).waitFor();
     await dialog.getByText("mirror-one.fixture.invalid", { exact: true }).waitFor();
     await dialog.getByText("recommended.fixture.invalid", { exact: true }).waitFor();
     assert.equal((await calls(page, "line_mirrors")).length, 1);
@@ -144,7 +144,7 @@ try {
     assert.equal(await page.evaluate(() => window.lineSelectionFixture.lineChanged), 1);
     assert.equal(await page.evaluate(() => window.lineSelectionSnapshot.user), null);
     assert.deepEqual((await calls(page, "line_set")).map(call => call.args), [{ url: MIRROR }]);
-    await dialog.getByRole("button", { name: "关闭", exact: true }).click();
+    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
     await sourceButton(page).getByText("mirror-one.fixture.invalid", { exact: true }).waitFor();
     await sourceButton(page).click();
     await dialog.waitFor();
@@ -172,7 +172,7 @@ try {
 
   {
     const { context, page } = await open({ [NEW_KEY]: "off" });
-    const toggle = page.getByRole("switch", { name: "自动选择线路", exact: true });
+    const toggle = page.getByRole("switch", { name: "서버 자동 선택", exact: true });
     assert.equal(await toggle.getAttribute("aria-checked"), "false");
     await toggle.click();
     await page.waitForFunction(() => window.lineSelectionFixture.base === "https://mirror-one.fixture.invalid");
@@ -197,14 +197,14 @@ try {
     await page.evaluate(() => window.lineSelectionControls.pickLine("fixture-all-down", true));
     const after = await page.evaluate(() => ({ base: window.lineSelectionFixture.base, changes: window.lineSelectionFixture.lineChanged, epoch: window.lineSelectionSnapshot.lineEpoch }));
     assert.deepEqual(after, before);
-    await page.getByText("线路全部不可用，请检查网络或代理", { exact: true }).waitFor();
+    await page.getByText("사용 가능한 서버가 없습니다. 네트워크나 프록시를 확인해 주세요", { exact: true }).waitFor();
     report.passed.push("All-down automatic selection keeps the existing line and content epoch and reports failure instead of a successful switch");
     await context.close();
   }
 
   {
     const { context, page } = await open({ [NEW_KEY]: "off" });
-    const toggle = page.getByRole("switch", { name: "自动选择线路", exact: true });
+    const toggle = page.getByRole("switch", { name: "서버 자동 선택", exact: true });
     await page.evaluate(() => { window.lineSelectionFixture.holdAuto = true; });
     await toggle.click();
     await page.waitForFunction(() => window.lineSelectionFixture.autoWaiters.length === 1);
@@ -226,14 +226,14 @@ try {
 
   {
     const { context, page } = await open({ [NEW_KEY]: "off" });
-    const toggle = page.getByRole("switch", { name: "自动选择线路", exact: true });
+    const toggle = page.getByRole("switch", { name: "서버 자동 선택", exact: true });
     await page.evaluate(() => { window.lineSelectionFixture.holdAuto = true; });
     await toggle.click();
     await page.waitForFunction(() => window.lineSelectionFixture.autoWaiters.length === 1);
     await sourceButton(page).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByText("固定线路 2", { exact: true }).waitFor();
-    await dialog.getByRole("button").filter({ hasText: "固定线路 2" }).click();
+    await dialog.getByText("고정 서버 2", { exact: true }).waitFor();
+    await dialog.getByRole("button").filter({ hasText: "고정 서버 2" }).click();
     await page.waitForFunction(() => window.lineSelectionFixture.base === "https://secondary.fixture.invalid" && window.lineSelectionSnapshot.lineEpoch === 1);
     await page.evaluate(() => { window.lineSelectionFixture.autoWaiters.splice(0).forEach(resolve => resolve()); });
     await page.waitForFunction(() => window.lineSelectionFixture.autoFinished === 1);
@@ -246,7 +246,7 @@ try {
     const sequence = (await page.evaluate(() => window.lineSelectionFixture.calls)).map(call => call.command);
     assert(sequence.indexOf("line_cancel") > sequence.indexOf("line_auto"));
     assert(sequence.indexOf("line_set") > sequence.indexOf("line_cancel"));
-    await dialog.getByRole("button", { name: "关闭", exact: true }).click();
+    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
     await sourceButton(page).getByText("secondary.fixture.invalid", { exact: true }).waitFor();
     assert.equal(await toggle.getAttribute("aria-checked"), "false");
     report.passed.push("Manual selection cancels the pending automatic request before line_set, pauses auto mode and remains selected when stale auto results arrive (generation-aware IPC fixture)");

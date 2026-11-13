@@ -237,7 +237,7 @@ export default function Player({
       )}
 
       {!playing && !waiting && (
-        <Button onClick={toggle} aria-label="播放"
+        <Button onClick={toggle} aria-label="재생"
           className="absolute inset-0 flex items-center justify-center">
           <span className="w-16 h-16 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center elev-2 pressable">
             <IPlayF size={26} className="text-white ml-0.5" />
@@ -247,22 +247,22 @@ export default function Player({
 
       {controls && (
         <div className="player-inline-controls absolute inset-x-0 bottom-0 px-3 pb-2 pt-8 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Input aria-label="播放进度" type="range" {...seek.inputProps}
+          <Input aria-label="재생 위치" type="range" {...seek.inputProps}
             className="hg-range w-full" style={{ ...seek.inputProps.style, "--fill": `${pct}%` } as React.CSSProperties} />
           <div className="flex items-center gap-3 mt-1 text-white">
-            <Button onClick={toggle} aria-label={playing ? "暂停" : "播放"} className="pressable">
+            <Button onClick={toggle} aria-label={playing ? "일시정지" : "재생"} className="pressable">
               {playing ? <IPauseF size={16} /> : <IPlayF size={16} />}
             </Button>
-            <Button onClick={() => onToggleMute?.()} aria-label={muted ? "取消静音" : "静音"} className="pressable">
+            <Button onClick={() => onToggleMute?.()} aria-label={muted ? "음소거 해제" : "음소거"} className="pressable">
               {muted ? <IVolMute size={16} /> : <IVol size={16} />}
             </Button>
             <span className="text-[12px] tabular-nums text-white/85">{fmtTime(seek.time)} / {fmtTime(duration)}</span>
             <div className="flex-1" />
-            <Button onClick={() => setControlsLocked(true)} aria-label="锁定播放控制" title="锁定播放控制" aria-pressed={false} className="pressable">
+            <Button onClick={() => setControlsLocked(true)} aria-label="재생 컨트롤 잠금" title="재생 컨트롤 잠금" aria-pressed={false} className="pressable">
               <ILockF size={16} />
             </Button>
             <Button onClick={cycleRate} className="text-[12px] font-bold text-white/85 pressable tabular-nums">{rate}x</Button>
-            <Button onClick={toggleFull} aria-label="全屏" className="pressable">
+            <Button onClick={toggleFull} aria-label="전체 화면" className="pressable">
               {full ? <ICompress size={16} /> : <IExpand size={16} />}
             </Button>
           </div>

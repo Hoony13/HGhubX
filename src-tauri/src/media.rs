@@ -117,7 +117,7 @@ pub async fn load_image(url: &str) -> Result<(String, Arc<Vec<u8>>), String> {
     let plain = if image_kind(&bytes).is_some() {
         bytes
     } else {
-        let dec = aes_cbc_decrypt(&bytes).ok_or_else(|| "封面解密失败".to_string())?;
+        let dec = aes_cbc_decrypt(&bytes).ok_or_else(|| "표지 이미지 복호화 실패".to_string())?;
         strip_padding(dec)
     };
     let kind = image_kind(&plain).unwrap_or("image/jpeg").to_string();
@@ -203,9 +203,9 @@ pub async fn load_playlist(url: &str, prefix: &str) -> Result<Arc<String>, Strin
         return Ok(hit);
     }
     let (_, bytes) = fetch_bytes(url).await?;
-    let text = std::str::from_utf8(&bytes).map_err(|_| "播放列表不是 UTF-8 文本")?;
+    let text = std::str::from_utf8(&bytes).map_err(|_| "재생 목록이 UTF-8 텍스트가 아닙니다")?;
     if !text.trim_start_matches('\u{feff}').starts_with("#EXTM3U") {
-        return Err("响应不是 HLS 播放列表".into());
+        return Err("응답이 HLS 재생 목록이 아닙니다".into());
     }
     let arc = Arc::new(rewrite_playlist(url, text, prefix));
     cache_put(&PL_CACHE, cache_key, arc.clone(), PL_CACHE_MAX);
